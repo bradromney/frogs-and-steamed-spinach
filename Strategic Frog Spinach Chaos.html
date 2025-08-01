@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Frog & Spinach Chaos Arena</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(45deg, #87ceeb, #98fb98, #f0e68c);
+            font-family: 'Comic Neue', cursive;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .hud {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .player-info {
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+            border: 3px solid #000;
+            transform: rotate(-2deg);
+        }
+
+        .player-info.right {
+            transform: rotate(2deg);
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: #ff6b6b;
+            border: 2px solid #000;
+            border-radius: 10px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #45b7aa);
+            transition: width 0.5s ease;
+            border-radius: 8px;
+        }
+
+        .instability-bar {
+            width: 200px;
+            height: 15px;
+            background: #ddd;
+            border: 2px solid #000;
+            border-radius: 8px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+
+        .instability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9ff3, #f368e0);
+            transition: width 0.3s ease;
+            border-radius: 6px;
+        }
+
+        .instructions {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 3px solid #000;
+            text-align: center;
+            font-weight: bold;
+            z-index: 100;
+        }
+
+        .power-meter {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 200px;
+            background: rgba(255,255,255,0.8);
+            border: 3px solid #000;
+            border-radius: 10px;
+            display: none;
+            z-index: 50;
+        }
+
+        .power-fill {
+            width: 100%;
+            background: linear-gradient(to top, #ff6b6b, #feca57, #48dbfb);
+            border-radius: 7px;
+            transition: height 0.1s ease;
+        }
+
+        .projectile {
+            position: absolute;
+            transition: none;
+            z-index: 40;
+        }
+
+        .splat {
+            position: absolute;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .character {
+            position: absolute;
+            transition: all 0.1s ease;
+            z-index: 20;
+        }
+
+        .shake-1 { animation: shake1 0.1s infinite; }
+        .shake-2 { animation: shake2 0.1s infinite; }
+        .shake-3 { animation: shake3 0.1s infinite; }
+        .shake-4 { animation: shake4 0.1s infinite; }
+        .shake-5 { animation: shake5 0.1s infinite; }
+
+        @keyframes shake1 {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(1px, 1px) rotate(0.5deg); }
+            50% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+            75% { transform: translate(1px, -1px) rotate(0.5deg); }
+        }
+
+        @keyframes shake2 {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(2px, 1px) rotate(1deg); }
+            50% { transform: translate(-2px, 2px) rotate(-1deg); }
+            75% { transform: translate(2px, -2px) rotate(1deg); }
+        }
+
+        @keyframes shake3 {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(3px, 2px) rotate(1.5deg); }
+            50% { transform: translate(-3px, 3px) rotate(-1.5deg); }
+            75% { transform: translate(3px, -3px) rotate(1.5deg); }
+        }
+
+        @keyframes shake4 {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(4px, 3px) rotate(2deg); }
+            50% { transform: translate(-4px, 4px) rotate(-2deg); }
+            75% { transform: translate(4px, -4px) rotate(2deg); }
+        }
+
+        @keyframes shake5 {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(6px, 4px) rotate(3deg); }
+            50% { transform: translate(-6px, 6px) rotate(-3deg); }
+            75% { transform: translate(6px, -6px) rotate(3deg); }
+        }
+
+        .stunned {
+            animation: stun 0.5s ease-in-out;
+        }
+
+        @keyframes stun {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(5deg); }
+            50% { transform: scale(0.9) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .explosion {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff6b6b, #feca57);
+            animation: explode 0.5s ease-out forwards;
+            z-index: 35;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(3) rotate(360deg); opacity: 0; }
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            padding: 40px;
+            border-radius: 30px;
+            border: 5px solid #000;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 200;
+            display: none;
+        }
+
+        .restart-btn {
+            background: #4ecdc4;
+            border: 3px solid #000;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transform: rotate(-1deg);
+        }
+
+        .restart-btn:hover {
+            background: #45b7aa;
+            transform: rotate(1deg) scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="hud">
+            <div class="player-info">
+                <div>YOU</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="playerHealth" style="width: 100%"></div>
+                </div>
+                <div>Stench: <span id="playerStench">0</span></div>
+                <div class="instability-bar">
+                    <div class="instability-fill" id="playerInstability" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="player-info right">
+                <div>COMPUTER</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="aiHealth" style="width: 100%"></div>
+                </div>
+                <div>Stench: <span id="aiStench">0</span></div>
+                <div class="instability-bar">
+                    <div class="instability-fill" id="aiInstability" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+        <div class="power-meter" id="powerMeter">
+            <div class="power-fill" id="powerFill"></div>
+        </div>
+
+        <div class="instructions">
+            Hold 'F' + Click to throw frogs (stuns opponent) | Click to throw spinach (damages) | WASD to move
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <div id="gameOverText">Game Over!</div>
+            <button class="restart-btn" onclick="restartGame()">Play Again!</button>
+        </div>
+    </div>
+
+    <script>
+        class SoundManager {
+            constructor() {
+                this.sounds = {};
+                this.context = null;
+                this.initAudio();
+            }
+
+            initAudio() {
+                try {
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Audio context not supported');
+                }
+            }
+
+            createSound(frequency, duration, type = 'sine', volume = 0.1) {
+                if (!this.context) return;
+                
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.context.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                oscillator.type = type;
+                
+                gainNode.gain.setValueAtTime(volume, this.context.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                
+                oscillator.start(this.context.currentTime);
+                oscillator.stop(this.context.currentTime + duration);
+            }
+
+            playFrogCroak() {
+                this.createSound(150 + Math.random() * 100, 0.3, 'sawtooth', 0.15);
+                setTimeout(() => this.createSound(200 + Math.random() * 50, 0.2, 'square', 0.1), 100);
+            }
+
+            playSpinachSplat() {
+                this.createSound(80 + Math.random() * 40, 0.5, 'sawtooth', 0.2);
+                this.createSound(120 + Math.random() * 60, 0.3, 'square', 0.15);
+            }
+
+            playHurl() {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        this.createSound(100 + Math.random() * 200, 0.4, 'sawtooth', 0.1);
+                    }, i * 150);
+                }
+            }
+
+            playExplosion() {
+                this.createSound(60, 0.6, 'sawtooth', 0.3);
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        this.createSound(40 + Math.random() * 100, 0.2, 'square', 0.2);
+                    }, i * 50);
+                }
+            }
+
+            playStun() {
+                this.createSound(400, 0.1, 'sine', 0.15);
+                setTimeout(() => this.createSound(300, 0.2, 'triangle', 0.1), 100);
+            }
+
+            playMove() {
+                if (Math.random() < 0.1) {
+                    this.createSound(200 + Math.random() * 100, 0.1, 'triangle', 0.05);
+                }
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.sounds = new SoundManager();
+                
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                this.keys = {};
+                this.mouse = { x: 0, y: 0, down: false };
+                this.fKeyPressed = false;
+                this.charging = false;
+                this.power = 0;
+                
+                this.player = {
+                    x: 100,
+                    y: this.canvas.height / 2,
+                    width: 60,
+                    height: 80,
+                    health: 100,
+                    stench: 0,
+                    instability: 0,
+                    stunned: false,
+                    speed: 3
+                };
+
+                this.ai = {
+                    x: this.canvas.width - 100,
+                    y: this.canvas.height / 2,
+                    width: 60,
+                    height: 80,
+                    health: 100,
+                    stench: 0,
+                    instability: 0,
+                    stunned: false,
+                    speed: 2,
+                    nextAction: 0,
+                    target: { x: 0, y: 0 },
+                    confused: false
+                };
+
+                this.projectiles = [];
+                this.splats = [];
+                this.gameRunning = true;
+
+                this.initEventListeners();
+                this.gameLoop();
+            }
+
+            initEventListeners() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    if (e.key.toLowerCase() === 'f') {
+                        this.fKeyPressed = true;
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                    if (e.key.toLowerCase() === 'f') {
+                        this.fKeyPressed = false;
+                    }
+                });
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    if (!this.gameRunning || this.player.stunned) return;
+                    
+                    this.mouse.down = true;
+                    this.charging = true;
+                    this.power = 0;
+                    document.getElementById('powerMeter').style.display = 'block';
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.y = e.clientY - rect.top;
+                });
+
+                this.canvas.addEventListener('mouseup', (e) => {
+                    if (!this.charging) return;
+                    
+                    this.mouse.down = false;
+                    this.charging = false;
+                    document.getElementById('powerMeter').style.display = 'none';
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    const targetX = e.clientX - rect.left;
+                    const targetY = e.clientY - rect.top;
+                    
+                    if (this.fKeyPressed) {
+                        this.throwFrog(targetX, targetY);
+                    } else {
+                        this.throwSpinach(targetX, targetY);
+                    }
+                });
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.y = e.clientY - rect.top;
+                });
+
+                window.addEventListener('resize', () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                });
+            }
+
+            updatePlayer() {
+                if (this.player.stunned) return;
+
+                const instabilityFactor = 1 + (this.player.instability / 100) * 2;
+                let moveX = 0, moveY = 0;
+
+                if (this.keys['a']) moveX = -this.player.speed;
+                if (this.keys['d']) moveX = this.player.speed;
+                if (this.keys['w']) moveY = -this.player.speed;
+                if (this.keys['s']) moveY = this.player.speed;
+
+                // Apply instability to movement
+                if (this.player.instability > 0) {
+                    moveX += (Math.random() - 0.5) * instabilityFactor;
+                    moveY += (Math.random() - 0.5) * instabilityFactor;
+                }
+
+                this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.x + moveX));
+                this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y + moveY));
+
+                if (moveX || moveY) {
+                    this.sounds.playMove();
+                }
+
+                if (this.charging) {
+                    this.power = Math.min(100, this.power + 2);
+                    document.getElementById('powerFill').style.height = this.power + '%';
+                }
+            }
+
+            updateAI() {
+                if (this.ai.stunned || this.ai.confused) return;
+
+                this.ai.nextAction++;
+
+                // AI movement with instability
+                const instabilityFactor = 1 + (this.ai.instability / 100) * 3;
+                let moveX = 0, moveY = 0;
+
+                // Simple AI: try to maintain distance and aim at player
+                const distanceToPlayer = Math.sqrt((this.player.x - this.ai.x) ** 2 + (this.player.y - this.ai.y) ** 2);
+                
+                if (distanceToPlayer < 200) {
+                    // Move away from player
+                    moveX = this.ai.x > this.player.x ? this.ai.speed : -this.ai.speed;
+                } else if (distanceToPlayer > 400) {
+                    // Move towards player
+                    moveX = this.ai.x < this.player.x ? this.ai.speed : -this.ai.speed;
+                }
+
+                // Random vertical movement
+                if (Math.random() < 0.02) {
+                    moveY = (Math.random() - 0.5) * this.ai.speed * 2;
+                }
+
+                // Apply instability
+                if (this.ai.instability > 0) {
+                    moveX += (Math.random() - 0.5) * instabilityFactor;
+                    moveY += (Math.random() - 0.5) * instabilityFactor;
+                }
+
+                this.ai.x = Math.max(0, Math.min(this.canvas.width - this.ai.width, this.ai.x + moveX));
+                this.ai.y = Math.max(0, Math.min(this.canvas.height - this.ai.height, this.ai.y + moveY));
+
+                // AI throwing logic
+                if (this.ai.nextAction > 60 + Math.random() * 60) {
+                    this.ai.nextAction = 0;
+                    
+                    if (Math.random() < 0.3) {
+                        // Throw frog to stun player
+                        this.aiThrowFrog();
+                    } else {
+                        // Throw spinach
+                        this.aiThrowSpinach();
+                    }
+                }
+            }
+
+            throwFrog(targetX, targetY) {
+                const power = this.power / 100;
+                const baseSpeed = 5 + power * 5;
+                
+                // Frog might jump out of hand backwards!
+                if (Math.random() < 0.15) {
+                    targetX = this.player.x - 100;
+                    targetY = this.player.y + (Math.random() - 0.5) * 200;
+                    this.sounds.playFrogCroak();
+                }
+
+                const dx = targetX - (this.player.x + this.player.width / 2);
+                const dy = targetY - (this.player.y + this.player.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                const instabilityFactor = 1 + (this.player.instability / 100);
+                const inaccuracy = (Math.random() - 0.5) * 100 * instabilityFactor;
+                
+                this.projectiles.push({
+                    type: 'frog',
+                    x: this.player.x + this.player.width / 2,
+                    y: this.player.y + this.player.height / 2,
+                    vx: (dx / distance * baseSpeed) + (Math.random() - 0.5) * 2 * instabilityFactor,
+                    vy: (dy / distance * baseSpeed) + (Math.random() - 0.5) * 2 * instabilityFactor + inaccuracy * 0.01,
+                    owner: 'player',
+                    life: 0,
+                    maxLife: 120
+                });
+
+                this.sounds.playFrogCroak();
+                this.power = 0;
+            }
+
+            throwSpinach(targetX, targetY) {
+                const power = this.power / 100;
+                const baseSpeed = 4 + power * 6;
+                
+                // Spinach might explode mid-air!
+                const willExplode = Math.random() < 0.2;
+                
+                const dx = targetX - (this.player.x + this.player.width / 2);
+                const dy = targetY - (this.player.y + this.player.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                const instabilityFactor = 1 + (this.player.instability / 100);
+                const inaccuracy = (Math.random() - 0.5) * 150 * instabilityFactor;
+                
+                this.projectiles.push({
+                    type: 'spinach',
+                    x: this.player.x + this.player.width / 2,
+                    y: this.player.y + this.player.height / 2,
+                    vx: (dx / distance * baseSpeed) + (Math.random() - 0.5) * 3 * instabilityFactor,
+                    vy: (dy / distance * baseSpeed) + (Math.random() - 0.5) * 3 * instabilityFactor + inaccuracy * 0.01,
+                    owner: 'player',
+                    life: 0,
+                    maxLife: willExplode ? 30 + Math.random() * 40 : 200,
+                    willExplode: willExplode
+                });
+
+                this.power = 0;
+            }
+
+            aiThrowFrog() {
+                const instabilityFactor = 1 + (this.ai.instability / 100) * 2;
+                const inaccuracy = 100 * instabilityFactor;
+                
+                const targetX = this.player.x + this.player.width / 2 + (Math.random() - 0.5) * inaccuracy;
+                const targetY = this.player.y + this.player.height / 2 + (Math.random() - 0.5) * inaccuracy;
+                
+                const dx = targetX - (this.ai.x + this.ai.width / 2);
+                const dy = targetY - (this.ai.y + this.ai.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const speed = 5 + Math.random() * 3;
+                
+                this.projectiles.push({
+                    type: 'frog',
+                    x: this.ai.x + this.ai.width / 2,
+                    y: this.ai.y + this.ai.height / 2,
+                    vx: (dx / distance * speed) + (Math.random() - 0.5) * 2 * instabilityFactor,
+                    vy: (dy / distance * speed) + (Math.random() - 0.5) * 2 * instabilityFactor,
+                    owner: 'ai',
+                    life: 0,
+                    maxLife: 120
+                });
+
+                this.sounds.playFrogCroak();
+            }
+
+            aiThrowSpinach() {
+                const instabilityFactor = 1 + (this.ai.instability / 100) * 2;
+                const inaccuracy = 120 * instabilityFactor;
+                
+                const targetX = this.player.x + this.player.width / 2 + (Math.random() - 0.5) * inaccuracy;
+                const targetY = this.player.y + this.player.height / 2 + (Math.random() - 0.5) * inaccuracy;
+                
+                const dx = targetX - (this.ai.x + this.ai.width / 2);
+                const dy = targetY - (this.ai.y + this.ai.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const speed = 4 + Math.random() * 4;
+                
+                const willExplode = Math.random() < 0.25;
+                
+                this.projectiles.push({
+                    type: 'spinach',
+                    x: this.ai.x + this.ai.width / 2,
+                    y: this.ai.y + this.ai.height / 2,
+                    vx: (dx / distance * speed) + (Math.random() - 0.5) * 3 * instabilityFactor,
+                    vy: (dy / distance * speed) + (Math.random() - 0.5) * 3 * instabilityFactor,
+                    owner: 'ai',
+                    life: 0,
+                    maxLife: willExplode ? 30 + Math.random() * 40 : 200,
+                    willExplode: willExplode
+                });
+            }
+
+            updateProjectiles() {
+                for (let i = this.projectiles.length - 1; i >= 0; i--) {
+                    const p = this.projectiles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life++;
+
+                    // Gravity for spinach
+                    if (p.type === 'spinach') {
+                        p.vy += 0.2;
+                    }
+
+                    // Check for explosions
+                    if (p.willExplode && p.life >= p.maxLife) {
+                        this.createExplosion(p.x, p.y);
+                        this.sounds.playExplosion();
+                        this.projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check boundaries
+                    if (p.x < 0 || p.x > this.canvas.width || p.y < 0 || p.y > this.canvas.height || p.life > p.maxLife) {
+                        if (p.type === 'spinach' && p.y > this.canvas.height - 20) {
+                            this.createSplat(p.x, p.y, 'spinach');
+                            this.sounds.playSpinachSplat();
+                        }
+                        this.projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check collisions
+                    this.checkProjectileCollision(p, i);
+                }
+            }
+
+            checkProjectileCollision(projectile, index) {
+                const target = projectile.owner === 'player' ? this.ai : this.player;
+                
+                if (projectile.x >= target.x && projectile.x <= target.x + target.width &&
+                    projectile.y >= target.y && projectile.y <= target.y + target.height) {
+                    
+                    if (projectile.type === 'frog') {
+                        // Frog stuns and increases instability
+                        target.stunned = true;
+                        target.instability = Math.min(100, target.instability + 15);
+                        
+                        setTimeout(() => {
+                            target.stunned = false;
+                        }, 1000);
+                        
+                        if (target === this.ai) {
+                            this.ai.confused = true;
+                            setTimeout(() => {
+                                this.ai.confused = false;
+                            }, 1500);
+                        }
+                        
+                        this.sounds.playStun();
+                        this.updateInstabilityDisplay();
+                        
+                    } else if (projectile.type === 'spinach') {
+                        // Spinach damages
+                        target.health -= 15 + Math.random() * 10;
+                        target.stench += 1;
+                        
+                        this.createSplat(projectile.x, projectile.y, 'spinach');
+                        this.sounds.playSpinachSplat();
+                        this.sounds.playHurl();
+                        
+                        this.updateHealthDisplay();
+                        
+                        if (target.health <= 0 || target.stench >= 10) {
+                            this.endGame(target === this.player ? 'ai' : 'player');
+                        }
+                    }
+                    
+                    this.projectiles.splice(index, 1);
+                }
+            }
+
+            createExplosion(x, y) {
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                explosion.style.left = (x - 30) + 'px';
+                explosion.style.top = (y - 30) + 'px';
+                document.body.appendChild(explosion);
+                
+                setTimeout(() => {
+                    document.body.removeChild(explosion);
+                }, 500);
+            }
+
+            createSplat(x, y, type) {
+                this.splats.push({
+                    x: x - 20,
+                    y: y - 20,
+                    type: type,
+                    life: 0
+                });
+            }
+
+            updateHealthDisplay() {
+                document.getElementById('playerHealth').style.width = Math.max(0, this.player.health) + '%';
+                document.getElementById('aiHealth').style.width = Math.max(0, this.ai.health) + '%';
+                document.getElementById('playerStench').textContent = this.player.stench;
+                document.getElementById('aiStench').textContent = this.ai.stench;
+            }
+
+            updateInstabilityDisplay() {
+                document.getElementById('playerInstability').style.width = this.player.instability + '%';
+                document.getElementById('aiInstability').style.width = this.ai.instability + '%';
+            }
+
+            drawCharacter(character, isPlayer) {
+                this.ctx.save();
+                
+                // Apply instability shaking
+                const shakeLevel = Math.min(5, Math.floor(character.instability / 20) + 1);
+                if (character.instability > 0) {
+                    const shakeX = (Math.random() - 0.5) * shakeLevel;
+                    const shakeY = (Math.random() - 0.5) * shakeLevel;
+                    this.ctx.translate(shakeX, shakeY);
+                }
+                
+                // Terrible toddler art
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 3;
+                this.ctx.lineCap = 'round';
+                
+                // Body - wobbly rectangle
+                this.ctx.fillStyle = isPlayer ? '#ffb6c1' : '#87ceeb';
+                this.ctx.beginPath();
+                this.ctx.moveTo(character.x + 15, character.y + 30);
+                this.ctx.lineTo(character.x + 45 + Math.sin(Date.now() * 0.01) * 3, character.y + 25);
+                this.ctx.lineTo(character.x + 50, character.y + 60 + Math.cos(Date.now() * 0.012) * 2);
+                this.ctx.lineTo(character.x + 10 + Math.sin(Date.now() * 0.008) * 2, character.y + 65);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // Head - wonky circle
+                this.ctx.fillStyle = '#ffdbac';
+                this.ctx.beginPath();
+                this.ctx.ellipse(character.x + 30, character.y + 15, 15 + Math.sin(Date.now() * 0.02) * 2, 12, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // Eyes - crooked dots
+                this.ctx.fillStyle = '#000';
+                this.ctx.beginPath();
+                this.ctx.ellipse(character.x + 25, character.y + 12, 2, 3, 0.2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.ellipse(character.x + 35, character.y + 10, 3, 2, -0.3, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Mouth - squiggly line
+                this.ctx.beginPath();
+                this.ctx.moveTo(character.x + 27, character.y + 20);
+                this.ctx.quadraticCurveTo(character.x + 30, character.y + 22 + Math.sin(Date.now() * 0.05) * 2, character.x + 33, character.y + 19);
+                this.ctx.stroke();
+                
+                // Arms - wavy lines
+                this.ctx.beginPath();
+                this.ctx.moveTo(character.x + 15, character.y + 35);
+                this.ctx.quadraticCurveTo(character.x + 5, character.y + 40, character.x + 8, character.y + 50);
+                this.ctx.moveTo(character.x + 45, character.y + 35);
+                this.ctx.quadraticCurveTo(character.x + 55, character.y + 40, character.x + 52, character.y + 50);
+                this.ctx.stroke();
+                
+                // Legs - uneven sticks
+                this.ctx.beginPath();
+                this.ctx.moveTo(character.x + 20, character.y + 65);
+                this.ctx.lineTo(character.x + 18, character.y + 80);
+                this.ctx.moveTo(character.x + 40, character.y + 65);
+                this.ctx.lineTo(character.x + 42, character.y + 80);
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+
+            drawProjectile(projectile) {
+                this.ctx.save();
+                
+                if (projectile.type === 'frog') {
+                    // Terrible frog drawing
+                    this.ctx.fillStyle = '#90ee90';
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.lineWidth = 2;
+                    
+                    // Frog body - lopsided oval
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(projectile.x, projectile.y, 8, 6, projectile.life * 0.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // Eyes - bulging dots
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(projectile.x - 3, projectile.y - 3, 3, 4, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(projectile.x + 3, projectile.y - 3, 3, 4, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(projectile.x - 3, projectile.y - 3, 1, 2, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(projectile.x + 3, projectile.y - 3, 1, 2, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else {
+                    // Terrible spinach drawing
+                    this.ctx.fillStyle = '#006400';
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.lineWidth = 2;
+                    
+                    // Spinach blob - irregular shape
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(projectile.x, projectile.y);
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const radius = 6 + Math.sin(angle * 3 + projectile.life * 0.1) * 3;
+                        const x = projectile.x + Math.cos(angle) * radius;
+                        const y = projectile.y + Math.sin(angle) * radius;
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+                    }
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                    
+                    // Steam lines
+                    this.ctx.strokeStyle = '#ccc';
+                    this.ctx.lineWidth = 1;
+                    for (let i = 0; i < 3; i++) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(projectile.x - 5 + i * 5, projectile.y - 10);
+                        this.ctx.quadraticCurveTo(projectile.x - 3 + i * 5, projectile.y - 15, projectile.x - 1 + i * 5, projectile.y - 12);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                this.ctx.restore();
+            }
+
+            drawSplat(splat) {
+                this.ctx.save();
+                this.ctx.globalAlpha = Math.max(0, 1 - splat.life / 600);
+                
+                if (splat.type === 'spinach') {
+                    this.ctx.fillStyle = '#006400';
+                } else {
+                    this.ctx.fillStyle = '#8B4513';
+                }
+                
+                // Terrible splat drawing
+                this.ctx.beginPath();
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 15 + Math.random() * 10;
+                    const x = splat.x + Math.cos(angle) * radius;
+                    const y = splat.y + Math.sin(angle) * radius;
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                this.ctx.restore();
+            }
+
+            update() {
+                if (!this.gameRunning) return;
+                
+                this.updatePlayer();
+                this.updateAI();
+                this.updateProjectiles();
+                
+                // Update splats
+                for (let i = this.splats.length - 1; i >= 0; i--) {
+                    this.splats[i].life++;
+                    if (this.splats[i].life > 600) {
+                        this.splats.splice(i, 1);
+                    }
+                }
+                
+                // Reduce instability over time
+                this.player.instability = Math.max(0, this.player.instability - 0.1);
+                this.ai.instability = Math.max(0, this.ai.instability - 0.1);
+                this.updateInstabilityDisplay();
+            }
+
+            draw() {
+                // Clear canvas with terrible background
+                this.ctx.fillStyle = '#87ceeb';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Terrible ground
+                this.ctx.fillStyle = '#90ee90';
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.canvas.height - 20);
+                for (let x = 0; x <= this.canvas.width; x += 50) {
+                    this.ctx.lineTo(x, this.canvas.height - 20 + Math.sin(x * 0.02) * 5);
+                }
+                this.ctx.lineTo(this.canvas.width, this.canvas.height);
+                this.ctx.lineTo(0, this.canvas.height);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // Draw splats
+                this.splats.forEach(splat => this.drawSplat(splat));
+                
+                // Draw characters
+                this.drawCharacter(this.player, true);
+                this.drawCharacter(this.ai, false);
+                
+                // Draw projectiles
+                this.projectiles.forEach(projectile => this.drawProjectile(projectile));
+                
+                // Draw crosshair
+                if (!this.charging) {
+                    this.ctx.strokeStyle = this.fKeyPressed ? '#ff6b6b' : '#4ecdc4';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.mouse.x - 10, this.mouse.y);
+                    this.ctx.lineTo(this.mouse.x + 10, this.mouse.y);
+                    this.ctx.moveTo(this.mouse.x, this.mouse.y - 10);
+                    this.ctx.lineTo(this.mouse.x, this.mouse.y + 10);
+                    this.ctx.stroke();
+                }
+            }
+
+            endGame(winner) {
+                this.gameRunning = false;
+                const gameOverDiv = document.getElementById('gameOver');
+                const gameOverText = document.getElementById('gameOverText');
+                
+                if (winner === 'player') {
+                    gameOverText.innerHTML = '🎉 You Won! 🎉<br>The computer gave up from the stench!';
+                } else {
+                    gameOverText.innerHTML = '💚 Computer Wins! 💚<br>You were overwhelmed by spinach!';
+                }
+                
+                gameOverDiv.style.display = 'block';
+                this.sounds.playHurl();
+            }
+
+            gameLoop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            new Game();
+        }
+
+        // Start the game
+        let game = new Game();
+
+        // Enable audio context on first user interaction
+        document.addEventListener('click', () => {
+            if (game.sounds.context && game.sounds.context.state === 'suspended') {
+                game.sounds.context.resume();
+            }
+        }, { once: true });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"9686c7d4aa367c32","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.7.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDmK6dSLUnfuTRDcG%2FeHmwAoSgAJPIX4PJf6CBqbOwAaaaGx8tT2ty0UuFCdwaPM0d1%2F2Xr2vFk8H%2FmX%2FyQCBbLjceeHqHzeNVFHHKVkr%2FfnXq%2B4GsbsPkQmHNAri3c2JVs9Poo04Cjleg3289XvHv3%2BbV3N0Brfb3DYBwCnrjDte%2Bn1ZAV67SuihONTbwgrhNnO6OsG7%2FyUkNzN7K5I3XZz6GUZKhtcEufYUFeEtaIgnfz93YQ5iV3673KRByRCA7GM1jgyOSoXnoir9Hnfg80Mw2ljxeOH%2F5HlBtTvRmRiQQJcvMrzm0kc52kKwBf9gNt%2FwPttpLYfOp6JJUX6x4Fa%2FmZxdqcBuLegKQKDbPNP2BSaPpThdeDBL0QbLYPuSA21uawqQhvL95EQLsVJlqnDbTXD1G3JUqZyqzcWLl3PX2ry2eVNbxAaKIySyF1FPYbxGAKKzg4%2BweE4WPiJwbUGvjrMTM7EUS4JJFNT5R50ziqofpuY4VcYhN8%2FdBQ5LJ5stqXwl9s%2Fb7NAuNsVsTtk%3D";
+        window.__genspark_locale = "en-US";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDmK6dSLUnfuTRDcG/eHmwAoSgAJPIX4PJf6CBqbOwAaaaGx8tT2ty0UuFCdwaPM0d1/2Xr2vFk8H/mX/yQCBbLjceeHqHzeNVFHHKVkr/fnXq+4GsbsPkQmHNAri3c2JVs9Poo04Cjleg3289XvHv3+bV3N0Brfb3DYBwCnrjDte+n1ZAV67SuihONTbwgrhNnO6OsG7/yUkNzN7K5I3XZz6GUZKhtcEufYUFeEtaIgnfz93YQ5iV3673KRByRCA7GM1jgyOSoXnoir9Hnfg80Mw2ljxeOH/5HlBtTvRmRiQQJcvMrzm0kc52kKwBf9gNt/wPttpLYfOp6JJUX6x4Fa/mZxdqcBuLegKQKDbPNP2BSaPpThdeDBL0QbLYPuSA21uawqQhvL95EQLsVJlqnDbTXD1G3JUqZyqzcWLl3PX2ry2eVNbxAaKIySyF1FPYbxGAKKzg4+weE4WPiJwbUGvjrMTM7EUS4JJFNT5R50ziqofpuY4VcYhN8/dBQ5LJ5stqXwl9s/b7NAuNsVsTtk=";
+    </script>
+    
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
