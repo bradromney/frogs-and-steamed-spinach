@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strategic Frog & Spinach Chaos Arena</title>
-    <script type="module">
-        import { injectSpeedInsights } from '@vercel/speed-insights'
-        injectSpeedInsights()
+    <script>
+        window.va = window.va || function () { (window.va.q = window.va.q || []).push(arguments); };
     </script>
+    <script defer src="https://vitals.vercel-insights.com/v1/vitals.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
         
@@ -1035,6 +1035,19 @@
                 game.sounds.context.resume();
             }
         }, { once: true });
+
+        // Test Speed Insights
+        setTimeout(() => {
+            if (window.va) {
+                console.log('✅ Speed Insights loaded successfully');
+                window.va('event', {
+                    name: 'game_started',
+                    data: { timestamp: Date.now() }
+                });
+            } else {
+                console.log('❌ Speed Insights not loaded - check Vercel deployment');
+            }
+        }, 1000);
     </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"9686c7d4aa367c32","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.7.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 </body>
