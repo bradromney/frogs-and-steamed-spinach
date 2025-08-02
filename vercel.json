@@ -13,6 +13,6 @@
     }
   ],
   "speedInsights": {
-    "enabled": true
+    "enabled": false
   }
 } 

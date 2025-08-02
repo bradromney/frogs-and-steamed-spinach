@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strategic Frog & Spinach Chaos Arena</title>
-    <script defer src="https://vitals.vercel-insights.com/v1/vitals.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
         
@@ -1058,24 +1058,40 @@
             }
         }, { once: true });
 
-        // Initialize Speed Insights
-        window.va = window.va || function() {
-            (window.vaq = window.vaq || []).push(arguments);
-        };
-
-        // Initialize Speed Insights when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            // Simple Speed Insights initialization
-            if (window.va) {
-                window.va('event', {
-                    name: 'page_view',
-                    data: {
-                        timestamp: Date.now()
+        // Manual Speed Insights implementation
+        (function() {
+            var va = window.va || function() {
+                (window.vaq = window.vaq || []).push(arguments);
+            };
+            window.va = va;
+            
+            // Track page load performance
+            if ('performance' in window) {
+                window.addEventListener('load', function() {
+                    var navigation = performance.getEntriesByType('navigation')[0];
+                    if (navigation) {
+                        va('event', {
+                            name: 'page_load',
+                            data: {
+                                loadTime: navigation.loadEventEnd - navigation.loadEventStart,
+                                domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+                                timestamp: Date.now()
+                            }
+                        });
                     }
                 });
-                console.log('✅ Speed Insights initialized');
             }
-        });
+            
+            // Track page view
+            va('event', {
+                name: 'page_view',
+                data: {
+                    timestamp: Date.now()
+                }
+            });
+            
+            console.log('✅ Manual Speed Insights initialized');
+        })();
 
         // Game analytics tracking
         window.gameAnalytics = {
