@@ -1058,39 +1058,20 @@
             }
         }, { once: true });
 
-        // Manual Speed Insights implementation
+        // Simple analytics tracking
         (function() {
-            var va = window.va || function() {
-                (window.vaq = window.vaq || []).push(arguments);
-            };
-            window.va = va;
-            
-            // Track page load performance
+            // Track page load time
             if ('performance' in window) {
                 window.addEventListener('load', function() {
                     var navigation = performance.getEntriesByType('navigation')[0];
                     if (navigation) {
-                        va('event', {
-                            name: 'page_load',
-                            data: {
-                                loadTime: navigation.loadEventEnd - navigation.loadEventStart,
-                                domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-                                timestamp: Date.now()
-                            }
-                        });
+                        console.log('📊 Page Load Time:', navigation.loadEventEnd - navigation.loadEventStart, 'ms');
+                        console.log('📊 DOM Content Loaded:', navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart, 'ms');
                     }
                 });
             }
             
-            // Track page view
-            va('event', {
-                name: 'page_view',
-                data: {
-                    timestamp: Date.now()
-                }
-            });
-            
-            console.log('✅ Manual Speed Insights initialized');
+            console.log('✅ Analytics initialized');
         })();
 
         // Game analytics tracking
