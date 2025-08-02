@@ -1058,10 +1058,44 @@
             }
         }, { once: true });
 
-        // Initialize Speed Insights shim
+        // Initialize Speed Insights
         window.va = window.va || function() {
             (window.vaq = window.vaq || []).push(arguments);
         };
+
+        // Initialize Speed Insights when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Speed Insights
+            if (window.va) {
+                window.va('event', {
+                    name: 'page_view',
+                    data: {
+                        timestamp: Date.now()
+                    }
+                });
+                
+                // Track performance metrics
+                if ('performance' in window) {
+                    const observer = new PerformanceObserver((list) => {
+                        for (const entry of list.getEntries()) {
+                            if (entry.entryType === 'navigation') {
+                                window.va('event', {
+                                    name: 'page_load',
+                                    data: {
+                                        loadTime: entry.loadEventEnd - entry.loadEventStart,
+                                        domContentLoaded: entry.domContentLoadedEventEnd - entry.domContentLoadedEventStart,
+                                        timestamp: Date.now()
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    observer.observe({ entryTypes: ['navigation'] });
+                }
+                
+                console.log('✅ Speed Insights initialized');
+            }
+        });
 
         // Game analytics tracking
         window.gameAnalytics = {
@@ -1093,12 +1127,6 @@
                 window.gameAnalytics.trackEvent('projectile_hit', { type, target });
             }
         };
-
-        // Initialize analytics when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('✅ Speed Insights initialized');
-            window.gameAnalytics.trackEvent('page_loaded');
-        });
 
         // Initialize game analytics
         if (window.gameAnalytics) {
