@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strategic Frog & Spinach Chaos Arena</title>
-    <script type="module" src="main.js"></script>
+    <script defer src="https://vitals.vercel-insights.com/v1/vitals.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
         
@@ -1058,19 +1058,52 @@
             }
         }, { once: true });
 
+        // Initialize Speed Insights shim
+        window.va = window.va || function() {
+            (window.vaq = window.vaq || []).push(arguments);
+        };
+
+        // Game analytics tracking
+        window.gameAnalytics = {
+            trackEvent: (name, data = {}) => {
+                if (window.va) {
+                    window.va('event', {
+                        name,
+                        data: {
+                            ...data,
+                            timestamp: Date.now()
+                        }
+                    });
+                }
+            },
+
+            trackGameStart: () => {
+                window.gameAnalytics.trackEvent('game_started');
+            },
+
+            trackGameEnd: (winner) => {
+                window.gameAnalytics.trackEvent('game_ended', { winner });
+            },
+
+            trackProjectile: (type) => {
+                window.gameAnalytics.trackEvent('projectile_thrown', { type });
+            },
+
+            trackHit: (type, target) => {
+                window.gameAnalytics.trackEvent('projectile_hit', { type, target });
+            }
+        };
+
+        // Initialize analytics when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ Speed Insights initialized');
+            window.gameAnalytics.trackEvent('page_loaded');
+        });
+
         // Initialize game analytics
         if (window.gameAnalytics) {
             window.gameAnalytics.trackGameStart();
         }
-    </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"9686c7d4aa367c32","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.7.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
-</body>
-</html>
-    <script id="html_badge_script1">
-        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
-            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDmK6dSLUnfuTRDcG%2FeHmwAoSgAJPIX4PJf6CBqbOwAaaaGx8tT2ty0UuFCdwaPM0d1%2F2Xr2vFk8H%2FmX%2FyQCBbLjceeHqHzeNVFHHKVkr%2FfnXq%2B4GsbsPkQmHNAri3c2JVs9Poo04Cjleg3289XvHv3%2BbV3N0Brfb3DYBwCnrjDte%2Bn1ZAV67SuihONTbwgrhNnO6OsG7%2FyUkNzN7K5I3XZz6GUZKhtcEufYUFeEtaIgnfz93YQ5iV3673KRByRCA7GM1jgyOSoXnoir9Hnfg80Mw2ljxeOH%2F5HlBtTvRmRiQQJcvMrzm0kc52kKwBf9gNt%2FwPttpLYfOp6JJUX6x4Fa%2FmZxdqcBuLegKQKDbPNP2BSaPpThdeDBL0QbLYPuSA21uawqQhvL95EQLsVJlqnDbTXD1G3JUqZyqzcWLl3PX2ry2eVNbxAaKIySyF1FPYbxGAKKzg4+weE4WPiJwbUGvjrMTM7EUS4JJFNT5R50ziqofpuY4VcYhN8%2FdBQ5LJ5stqXwl9s%2Fb7NAuNsVsTtk%3D";
-        window.__genspark_locale = "en-US";
-        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDmK6dSLUnfuTRDcG/eHmwAoSgAJPIX4PJf6CBqbOwAaaaGx8tT2ty0UuFCdwaPM0d1/2Xr2vFk8H/mX/yQCBbLjceeHqHzeNVFHHKVkr/fnXq+4GsbsPkQmHNAri3c2JVs9Poo04Cjleg3289XvHv3+bV3N0Brfb3DYBwCnrjDte+n1ZAV67SuihONTbwgrhNnO6OsG7/yUkNzN7K5I3XZz6GUZKhtcEufYUFeEtaIgnfz93YQ5iV3673KRByRCA7GM1jgyOSoXnoir9Hnfg80Mw2ljxeOH/5HlBtTvRmRiQQJcvMrzm0kc52kKwBf9gNt/wPttpLYfOp6JJUX6x4Fa/mZxdqcBuLegKQKDbPNP2BSaPpThdeDBL0QbLYPuSA21uawqQhvL95EQLsVJlqnDbTXD1G3JUqZyqzcWLl3PX2ry2eVNbxAaKIySyF1FPYbxGAKKzg4+weE4WPiJwbUGvjrMTM7EUS4JJFNT5R50ziqofpuY4VcYhN8/dBQ5LJ5stqXwl9s/b7NAuNsVsTtk=";
     </script>
     
     <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
