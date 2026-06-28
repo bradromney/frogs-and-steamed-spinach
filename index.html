@@ -1039,7 +1039,9 @@
             gameLoop() {
                 this.update();
                 this.draw();
-                requestAnimationFrame(() => this.gameLoop());
+                if (this.gameRunning) {
+                    requestAnimationFrame(() => this.gameLoop());
+                }
             }
         }
 
