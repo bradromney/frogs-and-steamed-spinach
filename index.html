@@ -235,6 +235,37 @@
             background: #45b7aa;
             transform: rotate(1deg) scale(1.05);
         }
+
+        .streak-display {
+            background: rgba(255,255,255,0.85);
+            padding: 8px 15px;
+            border-radius: 15px;
+            border: 3px solid #000;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            align-self: flex-start;
+        }
+
+        .streak-number {
+            font-size: 28px;
+            line-height: 1;
+            color: #e74c3c;
+        }
+
+        .streak-best {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .new-record-flash {
+            animation: recordFlash 0.5s ease-in-out 4;
+        }
+
+        @keyframes recordFlash {
+            0%, 100% { background: rgba(255,255,255,0.95); }
+            50% { background: rgba(255, 215, 0, 0.97); border-color: #f39c12; }
+        }
     </style>
 </head>
 <body>
@@ -249,6 +280,11 @@
                 <div class="instability-bar">
                     <div class="instability-fill" id="playerInstability" style="width: 0%"></div>
                 </div>
+            </div>
+            <div class="streak-display">
+                <div>STREAK</div>
+                <div class="streak-number" id="currentStreak">0</div>
+                <div class="streak-best">BEST: <span id="bestStreak">0</span></div>
             </div>
             <div class="player-info right">
                 <div>COMPUTER</div>
@@ -274,6 +310,7 @@
 
         <div class="game-over" id="gameOver">
             <div id="gameOverText">Game Over!</div>
+            <div id="streakInfo" style="margin: 12px 0; font-size: 17px;"></div>
             <button class="restart-btn" onclick="restartGame()">Play Again!</button>
         </div>
     </div>
@@ -350,6 +387,23 @@
                     this.createSound(200 + Math.random() * 100, 0.1, 'triangle', 0.05);
                 }
             }
+
+            playVictoryFanfare() {
+                // Simple ascending chord: C E G C
+                [261, 329, 392, 523].forEach((freq, i) => {
+                    setTimeout(() => this.createSound(freq, 0.35, 'square', 0.11), i * 160);
+                });
+            }
+
+            playRecordBreaker() {
+                // Triumphant ascending run + high flourish
+                [261, 329, 392, 523, 659, 784, 1046].forEach((freq, i) => {
+                    setTimeout(() => {
+                        this.createSound(freq, 0.38, 'square', 0.12);
+                        if (i % 2 === 0) this.createSound(freq * 1.5, 0.18, 'triangle', 0.05);
+                    }, i * 120);
+                });
+            }
         }
 
         class Game {
@@ -357,10 +411,13 @@
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
                 this.sounds = new SoundManager();
-                
+
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
-                
+
+                this.winStreak = parseInt(localStorage.getItem('winStreak') || '0');
+                this.bestStreak = parseInt(localStorage.getItem('bestStreak') || '0');
+
                 this.keys = {};
                 this.mouse = { x: 0, y: 0, down: false };
                 this.fKeyPressed = false;
@@ -399,6 +456,7 @@
                 this.gameRunning = true;
 
                 this.initEventListeners();
+                this.updateStreakDisplay();
                 this.gameLoop();
             }
 
@@ -786,6 +844,13 @@
                 document.getElementById('aiInstability').style.width = this.ai.instability + '%';
             }
 
+            updateStreakDisplay() {
+                document.getElementById('currentStreak').textContent = this.winStreak;
+                document.getElementById('bestStreak').textContent = this.bestStreak;
+                const el = document.getElementById('currentStreak');
+                el.style.color = this.winStreak >= 3 ? '#e74c3c' : this.winStreak >= 1 ? '#e67e22' : '#aaa';
+            }
+
             drawCharacter(character, isPlayer) {
                 this.ctx.save();
                 
@@ -1020,17 +1085,47 @@
                 this.gameRunning = false;
                 const gameOverDiv = document.getElementById('gameOver');
                 const gameOverText = document.getElementById('gameOverText');
-                
+                const streakInfo = document.getElementById('streakInfo');
+                let isNewRecord = false;
+
                 if (winner === 'player') {
+                    this.winStreak++;
+                    if (this.winStreak > this.bestStreak) {
+                        this.bestStreak = this.winStreak;
+                        localStorage.setItem('bestStreak', this.bestStreak);
+                        isNewRecord = true;
+                    }
+                    localStorage.setItem('winStreak', this.winStreak);
+
                     gameOverText.innerHTML = '🎉 You Won! 🎉<br>The computer gave up from the stench!';
+                    let streakMsg = `Win Streak: <strong>${this.winStreak}</strong>`;
+                    if (isNewRecord && this.winStreak > 1) {
+                        streakMsg += '<br><strong style="color:#e67e22;font-size:20px">★ NEW RECORD! ★</strong>';
+                    }
+                    streakInfo.innerHTML = streakMsg;
                 } else {
                     gameOverText.innerHTML = '💚 Computer Wins! 💚<br>You were overwhelmed by spinach!';
+                    streakInfo.innerHTML = this.winStreak > 0
+                        ? `Streak ended at: <strong>${this.winStreak}</strong>`
+                        : '';
+                    this.winStreak = 0;
+                    localStorage.setItem('winStreak', '0');
                 }
-                
+
+                this.updateStreakDisplay();
+                gameOverDiv.classList.remove('new-record-flash');
                 gameOverDiv.style.display = 'block';
-                this.sounds.playHurl();
-                
-                // Track game end
+
+                if (isNewRecord && this.bestStreak > 1) {
+                    void gameOverDiv.offsetWidth; // force reflow to restart animation
+                    gameOverDiv.classList.add('new-record-flash');
+                    this.sounds.playRecordBreaker();
+                } else if (winner === 'player') {
+                    this.sounds.playVictoryFanfare();
+                } else {
+                    this.sounds.playHurl();
+                }
+
                 if (window.gameAnalytics) {
                     window.gameAnalytics.trackGameEnd(winner);
                 }
