@@ -433,7 +433,8 @@
                     stench: 0,
                     instability: 0,
                     stunned: false,
-                    speed: 3
+                    speed: 3,
+                    hitFlash: 0
                 };
 
                 this.ai = {
@@ -448,11 +449,14 @@
                     speed: 2,
                     nextAction: 0,
                     target: { x: 0, y: 0 },
-                    confused: false
+                    confused: false,
+                    hitFlash: 0
                 };
 
                 this.projectiles = [];
                 this.splats = [];
+                this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+                this.floatingNumbers = [];
                 this.gameRunning = true;
 
                 this.initEventListeners();
@@ -766,18 +770,21 @@
                         // Frog stuns and increases instability
                         target.stunned = true;
                         target.instability = Math.min(100, target.instability + 15);
-                        
+                        target.hitFlash = 8;
+                        this.triggerScreenShake(4, 8);
+                        this.spawnFloatingNumber(target.x + target.width / 2, target.y, 'STUNNED');
+
                         setTimeout(() => {
                             target.stunned = false;
                         }, 1000);
-                        
+
                         if (target === this.ai) {
                             this.ai.confused = true;
                             setTimeout(() => {
                                 this.ai.confused = false;
                             }, 1500);
                         }
-                        
+
                         this.sounds.playStun();
                         this.updateInstabilityDisplay();
                         
@@ -788,13 +795,17 @@
                         
                     } else if (projectile.type === 'spinach') {
                         // Spinach damages
-                        target.health -= 15 + Math.random() * 10;
+                        const dmg = 15 + Math.random() * 10;
+                        target.health -= dmg;
                         target.stench += 1;
-                        
+                        target.hitFlash = 10;
+
                         this.createSplat(projectile.x, projectile.y, 'spinach');
                         this.sounds.playSpinachSplat();
                         this.sounds.playHurl();
-                        
+                        this.spawnFloatingNumber(target.x + target.width / 2, target.y, dmg);
+                        this.triggerScreenShake(projectile.owner === 'player' ? 8 : 5, 12);
+
                         this.updateHealthDisplay();
                         
                         // Track hit
@@ -830,6 +841,18 @@
                     type: type,
                     life: 0
                 });
+            }
+
+            triggerScreenShake(intensity, duration) {
+                if (intensity > this.screenShake.intensity) {
+                    this.screenShake.intensity = intensity;
+                    this.screenShake.duration = duration;
+                }
+            }
+
+            spawnFloatingNumber(x, y, value) {
+                const v = typeof value === 'string' ? value : Math.round(value);
+                this.floatingNumbers.push({ x, y, value: v, life: 0, maxLife: 60 });
             }
 
             updateHealthDisplay() {
@@ -915,7 +938,15 @@
                 this.ctx.moveTo(character.x + 40, character.y + 65);
                 this.ctx.lineTo(character.x + 42, character.y + 80);
                 this.ctx.stroke();
-                
+
+                // Hit flash overlay
+                if (character.hitFlash > 0) {
+                    this.ctx.globalAlpha = character.hitFlash / 10;
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.fillRect(character.x, character.y, character.width, character.height);
+                    this.ctx.globalAlpha = 1;
+                }
+
                 this.ctx.restore();
             }
 
@@ -1036,12 +1067,40 @@
                 this.player.instability = Math.max(0, this.player.instability - 0.1);
                 this.ai.instability = Math.max(0, this.ai.instability - 0.1);
                 this.updateInstabilityDisplay();
+
+                // Decay screen shake
+                if (this.screenShake.duration > 0) {
+                    this.screenShake.x = (Math.random() - 0.5) * this.screenShake.intensity;
+                    this.screenShake.y = (Math.random() - 0.5) * this.screenShake.intensity;
+                    this.screenShake.duration--;
+                    this.screenShake.intensity *= 0.85;
+                } else {
+                    this.screenShake.x = 0;
+                    this.screenShake.y = 0;
+                }
+
+                // Update floating numbers
+                for (let i = this.floatingNumbers.length - 1; i >= 0; i--) {
+                    this.floatingNumbers[i].y -= 1.5;
+                    this.floatingNumbers[i].life++;
+                    if (this.floatingNumbers[i].life >= this.floatingNumbers[i].maxLife) {
+                        this.floatingNumbers.splice(i, 1);
+                    }
+                }
+
+                // Decay hit flash
+                if (this.player.hitFlash > 0) this.player.hitFlash--;
+                if (this.ai.hitFlash > 0) this.ai.hitFlash--;
             }
 
             draw() {
                 // Clear canvas with terrible background
                 this.ctx.fillStyle = '#87ceeb';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Apply screen shake
+                this.ctx.save();
+                this.ctx.translate(this.screenShake.x, this.screenShake.y);
                 
                 // Terrible ground
                 this.ctx.fillStyle = '#90ee90';
@@ -1068,7 +1127,26 @@
                 // Draw projectiles
                 this.projectiles.forEach(projectile => this.drawProjectile(projectile));
                 
-                // Draw crosshair
+                // Draw floating damage numbers
+                this.floatingNumbers.forEach(n => {
+                    const alpha = 1 - n.life / n.maxLife;
+                    const scale = 1 + (1 - n.life / n.maxLife) * 0.4;
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.font = `bold ${Math.round(20 * scale)}px monospace`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillStyle = typeof n.value === 'string' ? '#ffd700' : '#ff3333';
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.lineWidth = 3;
+                    const text = typeof n.value === 'string' ? n.value : '-' + n.value;
+                    this.ctx.strokeText(text, n.x, n.y);
+                    this.ctx.fillText(text, n.x, n.y);
+                    this.ctx.restore();
+                });
+
+                this.ctx.restore(); // end screen shake translate
+
+                // Draw crosshair (outside shake so it stays stable)
                 if (!this.charging) {
                     this.ctx.strokeStyle = this.fKeyPressed ? '#ff6b6b' : '#4ecdc4';
                     this.ctx.lineWidth = 2;
