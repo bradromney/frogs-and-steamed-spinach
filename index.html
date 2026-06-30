@@ -482,6 +482,7 @@
 
                 this.projectiles = [];
                 this.splats = [];
+                this.particles = [];
                 this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
                 this.floatingNumbers = [];
                 this.gameRunning = true;
@@ -809,6 +810,7 @@
                         target.hitFlash = 8;
                         this.hitStopFrames = Math.max(this.hitStopFrames, 3);
                         this.triggerScreenShake(4, 8);
+                        this.spawnImpactParticles(projectile.x, projectile.y, 'frog');
                         this.spawnFloatingNumber(target.x + target.width / 2, target.y, 'STUNNED');
 
                         setTimeout(() => {
@@ -840,6 +842,7 @@
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
 
                         this.createSplat(projectile.x, projectile.y, 'spinach');
+                        this.spawnImpactParticles(projectile.x, projectile.y, 'spinach');
                         this.sounds.playSpinachSplat();
                         this.sounds.playHurl();
                         this.spawnFloatingNumber(target.x + target.width / 2, target.y, dmg);
@@ -875,12 +878,34 @@
             }
 
             createSplat(x, y, type) {
-                this.splats.push({
-                    x: x - 20,
-                    y: y - 20,
-                    type: type,
-                    life: 0
-                });
+                const points = [];
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 15 + Math.random() * 12;
+                    points.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+                }
+                this.splats.push({ x, y, type, life: 0, points });
+            }
+
+            spawnImpactParticles(x, y, type) {
+                const isFrog = type === 'frog';
+                const colors = isFrog
+                    ? ['#90ee90', '#32cd32', '#7cfc00', '#adff2f']
+                    : ['#006400', '#228b22', '#32cd32', '#ffd700'];
+                const count = isFrog ? 8 : 12;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1.5 + Math.random() * 4.5;
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 1.5,
+                        life: 0,
+                        maxLife: 22 + Math.random() * 18,
+                        size: 2.5 + Math.random() * 3.5,
+                        color: colors[Math.floor(Math.random() * colors.length)]
+                    });
+                }
             }
 
             triggerScreenShake(intensity, duration) {
@@ -1092,29 +1117,16 @@
             drawSplat(splat) {
                 this.ctx.save();
                 this.ctx.globalAlpha = Math.max(0, 1 - splat.life / 600);
-                
-                if (splat.type === 'spinach') {
-                    this.ctx.fillStyle = '#006400';
-                } else {
-                    this.ctx.fillStyle = '#8B4513';
-                }
-                
-                // Terrible splat drawing
+                this.ctx.fillStyle = splat.type === 'spinach' ? '#006400' : '#8B4513';
+
                 this.ctx.beginPath();
-                for (let i = 0; i < 12; i++) {
-                    const angle = (i / 12) * Math.PI * 2;
-                    const radius = 15 + Math.random() * 10;
-                    const x = splat.x + Math.cos(angle) * radius;
-                    const y = splat.y + Math.sin(angle) * radius;
-                    if (i === 0) {
-                        this.ctx.moveTo(x, y);
-                    } else {
-                        this.ctx.lineTo(x, y);
-                    }
-                }
+                splat.points.forEach((pt, i) => {
+                    if (i === 0) this.ctx.moveTo(splat.x + pt.x, splat.y + pt.y);
+                    else this.ctx.lineTo(splat.x + pt.x, splat.y + pt.y);
+                });
                 this.ctx.closePath();
                 this.ctx.fill();
-                
+
                 this.ctx.restore();
             }
 
@@ -1131,6 +1143,17 @@
                     if (this.splats[i].life > 600) {
                         this.splats.splice(i, 1);
                     }
+                }
+
+                // Update impact particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.18;
+                    p.vx *= 0.96;
+                    p.life++;
+                    if (p.life >= p.maxLife) this.particles.splice(i, 1);
                 }
                 
                 // Reduce instability over time
@@ -1189,7 +1212,19 @@
                 
                 // Draw splats
                 this.splats.forEach(splat => this.drawSplat(splat));
-                
+
+                // Draw impact particles
+                this.particles.forEach(p => {
+                    const alpha = 1 - p.life / p.maxLife;
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size * (0.4 + alpha * 0.6), 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                });
+
                 // Draw characters
                 this.drawCharacter(this.player, true);
                 this.drawCharacter(this.ai, false);
