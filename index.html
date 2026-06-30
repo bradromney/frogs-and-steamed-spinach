@@ -301,6 +301,7 @@
                 <div>STREAK</div>
                 <div class="streak-number" id="currentStreak">0</div>
                 <div class="streak-best">BEST: <span id="bestStreak">0</span></div>
+                <div class="streak-best" id="difficultyLevel">ENEMY LVL 1</div>
             </div>
             <div class="player-info right">
                 <div>COMPUTER</div>
@@ -583,32 +584,38 @@
                 }
             }
 
+            getDifficultyScale() {
+                // 0.0 at streak 0, 1.0 at streak 8+
+                return Math.min(this.winStreak / 8, 1);
+            }
+
             updateAI() {
                 if (this.ai.stunned || this.ai.confused) return;
 
                 this.ai.nextAction++;
 
-                // AI movement with instability
+                const diff = this.getDifficultyScale();
+                // AI speed scales from 2 (easy) to 4 (max difficulty)
+                const aiSpeed = 2 + diff * 2;
                 const instabilityFactor = 1 + (this.ai.instability / 100) * 3;
                 let moveX = 0, moveY = 0;
 
-                // Simple AI: try to maintain distance and aim at player
                 const distanceToPlayer = Math.sqrt((this.player.x - this.ai.x) ** 2 + (this.player.y - this.ai.y) ** 2);
-                
+
                 if (distanceToPlayer < 200) {
-                    // Move away from player
-                    moveX = this.ai.x > this.player.x ? this.ai.speed : -this.ai.speed;
+                    moveX = this.ai.x > this.player.x ? aiSpeed : -aiSpeed;
                 } else if (distanceToPlayer > 400) {
-                    // Move towards player
-                    moveX = this.ai.x < this.player.x ? this.ai.speed : -this.ai.speed;
+                    moveX = this.ai.x < this.player.x ? aiSpeed : -aiSpeed;
                 }
 
-                // Random vertical movement
-                if (Math.random() < 0.02) {
-                    moveY = (Math.random() - 0.5) * this.ai.speed * 2;
+                // Higher difficulty: actively track player Y; lower difficulty: random vertical drift
+                if (diff >= 0.5) {
+                    const yDiff = this.player.y - this.ai.y;
+                    if (Math.abs(yDiff) > 30) moveY = Math.sign(yDiff) * aiSpeed * 0.6;
+                } else if (Math.random() < 0.02) {
+                    moveY = (Math.random() - 0.5) * aiSpeed * 2;
                 }
 
-                // Apply instability
                 if (this.ai.instability > 0) {
                     moveX += (Math.random() - 0.5) * instabilityFactor;
                     moveY += (Math.random() - 0.5) * instabilityFactor;
@@ -617,15 +624,16 @@
                 this.ai.x = Math.max(0, Math.min(this.canvas.width - this.ai.width, this.ai.x + moveX));
                 this.ai.y = Math.max(0, Math.min(this.canvas.height - this.ai.height, this.ai.y + moveY));
 
-                // AI throwing logic
-                if (this.ai.nextAction > 60 + Math.random() * 60) {
+                // Attack interval shrinks from 60-120 frames (easy) down to 20-30 frames (max)
+                const minInterval = Math.round(60 - diff * 40);
+                const randRange = Math.round(60 - diff * 50);
+                if (this.ai.nextAction > minInterval + Math.random() * Math.max(randRange, 10)) {
                     this.ai.nextAction = 0;
-                    
-                    if (Math.random() < 0.3) {
-                        // Throw frog to stun player
+                    // Frog usage rises from 30% to 50% at max difficulty (frogs stun, more disruptive)
+                    const frogChance = 0.3 + diff * 0.2;
+                    if (Math.random() < frogChance) {
                         this.aiThrowFrog();
                     } else {
-                        // Throw spinach
                         this.aiThrowSpinach();
                     }
                 }
@@ -707,7 +715,8 @@
 
             aiThrowFrog() {
                 const instabilityFactor = 1 + (this.ai.instability / 100) * 2;
-                const inaccuracy = 100 * instabilityFactor;
+                // Accuracy improves up to 60% at max difficulty
+                const inaccuracy = 100 * (1 - this.getDifficultyScale() * 0.6) * instabilityFactor;
                 
                 const targetX = this.player.x + this.player.width / 2 + (Math.random() - 0.5) * inaccuracy;
                 const targetY = this.player.y + this.player.height / 2 + (Math.random() - 0.5) * inaccuracy;
@@ -734,7 +743,8 @@
 
             aiThrowSpinach() {
                 const instabilityFactor = 1 + (this.ai.instability / 100) * 2;
-                const inaccuracy = 120 * instabilityFactor;
+                // Accuracy improves up to 60% at max difficulty
+                const inaccuracy = 120 * (1 - this.getDifficultyScale() * 0.6) * instabilityFactor;
                 
                 const targetX = this.player.x + this.player.width / 2 + (Math.random() - 0.5) * inaccuracy;
                 const targetY = this.player.y + this.player.height / 2 + (Math.random() - 0.5) * inaccuracy;
@@ -954,6 +964,8 @@
                 document.getElementById('bestStreak').textContent = this.bestStreak;
                 const el = document.getElementById('currentStreak');
                 el.style.color = this.winStreak >= 3 ? '#e74c3c' : this.winStreak >= 1 ? '#e67e22' : '#aaa';
+                const diffEl = document.getElementById('difficultyLevel');
+                if (diffEl) diffEl.textContent = `ENEMY LVL ${this.winStreak + 1}`;
             }
 
             drawCharacter(character, isPlayer) {
