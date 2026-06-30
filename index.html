@@ -1033,6 +1033,56 @@
                 this.ctx.lineTo(character.x + 42, character.y + 80);
                 this.ctx.stroke();
 
+                // Stun stars — 3 golden stars orbiting above head when stunned
+                if (character.stunned) {
+                    const cx = character.x + character.width / 2;
+                    const cy = character.y - 8;
+                    const t = Date.now() * 0.004;
+                    for (let s = 0; s < 3; s++) {
+                        const angle = t + (s / 3) * Math.PI * 2;
+                        const sx = cx + Math.cos(angle) * 22;
+                        const sy = cy + Math.sin(angle) * 9;
+                        this.ctx.save();
+                        this.ctx.fillStyle = '#ffd700';
+                        this.ctx.strokeStyle = '#000';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        for (let pt = 0; pt < 10; pt++) {
+                            const a = pt * Math.PI / 5 - Math.PI / 2;
+                            const r = pt % 2 === 0 ? 6 : 3;
+                            const px = sx + Math.cos(a) * r;
+                            const py = sy + Math.sin(a) * r;
+                            if (pt === 0) this.ctx.moveTo(px, py);
+                            else this.ctx.lineTo(px, py);
+                        }
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                        this.ctx.restore();
+                    }
+                }
+
+                // Stench fumes — wavy green lines above character, count and opacity scale with stench
+                if (character.stench > 0) {
+                    const stenchAlpha = 0.35 + (character.stench / 10) * 0.55;
+                    const lineCount = 1 + Math.floor(character.stench / 3);
+                    const t = Date.now() * 0.003;
+                    this.ctx.lineWidth = 1.5;
+                    for (let s = 0; s < lineCount; s++) {
+                        this.ctx.strokeStyle = `rgba(80, 180, 60, ${stenchAlpha})`;
+                        const bx = character.x + 8 + s * 14;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(bx + Math.sin(t + s) * 3, character.y - 4);
+                        for (let seg = 1; seg <= 5; seg++) {
+                            this.ctx.lineTo(
+                                bx + Math.sin(t + s + seg * 0.7) * 4,
+                                character.y - 4 - seg * 7
+                            );
+                        }
+                        this.ctx.stroke();
+                    }
+                }
+
                 // Hit flash overlay
                 if (character.hitFlash > 0) {
                     this.ctx.globalAlpha = character.hitFlash / 10;
