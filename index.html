@@ -1338,6 +1338,39 @@
                     this.ctx.restore();
                 }
 
+                // Spinach trajectory arc preview while charging (gravity physics makes aiming non-trivial)
+                if (this.charging && !this.fKeyPressed) {
+                    const power = this.power / 100;
+                    const baseSpeed = 4 + power * 6;
+                    const startX = this.player.x + this.player.width / 2;
+                    const startY = this.player.y + this.player.height / 2;
+                    const dx = this.mouse.x - startX;
+                    const dy = this.mouse.y - startY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 0) {
+                        let px = startX, py = startY;
+                        let pvx = (dx / dist) * baseSpeed;
+                        let pvy = (dy / dist) * baseSpeed;
+                        this.ctx.save();
+                        this.ctx.fillStyle = '#55ee88';
+                        this.ctx.strokeStyle = '#55ee88';
+                        for (let step = 0; step < 140; step++) {
+                            px += pvx;
+                            py += pvy;
+                            pvy += 0.2; // same gravity as real spinach
+                            if (px < 0 || px > this.canvas.width || py > this.canvas.height) break;
+                            if (step % 4 === 0) {
+                                this.ctx.globalAlpha = Math.max(0.08, 0.65 - (step / 140) * 0.57);
+                                const r = 2.5 + (step / 140) * 1.5;
+                                this.ctx.beginPath();
+                                this.ctx.arc(px, py, r, 0, Math.PI * 2);
+                                this.ctx.fill();
+                            }
+                        }
+                        this.ctx.restore();
+                    }
+                }
+
                 // Draw crosshair (outside shake so it stays stable)
                 if (!this.charging) {
                     this.ctx.strokeStyle = this.fKeyPressed ? '#ff6b6b' : '#4ecdc4';
