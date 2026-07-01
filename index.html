@@ -267,6 +267,15 @@
             50% { background: rgba(255, 215, 0, 0.97); border-color: #f39c12; }
         }
 
+        .health-fill.critical {
+            animation: criticalPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes criticalPulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.7) saturate(1.8); }
+        }
+
         .crt-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -405,6 +414,11 @@
                 }
             }
 
+            playHeartbeat() {
+                this.createSound(62, 0.16, 'sine', 0.20);
+                setTimeout(() => this.createSound(56, 0.12, 'sine', 0.15), 100);
+            }
+
             playVictoryFanfare() {
                 // Simple ascending chord: C E G C
                 [261, 329, 392, 523].forEach((freq, i) => {
@@ -491,6 +505,7 @@
                 this.playerHurtFrames = 0;
                 this.playerCombo = 0;
                 this.bestCombo = 0;
+                this.lowHealthPulse = 0;
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
@@ -951,7 +966,13 @@
             }
 
             updateHealthDisplay() {
-                document.getElementById('playerHealth').style.width = Math.max(0, this.player.health) + '%';
+                const playerHealthFill = document.getElementById('playerHealth');
+                playerHealthFill.style.width = Math.max(0, this.player.health) + '%';
+                if (this.player.health < 30) {
+                    playerHealthFill.classList.add('critical');
+                } else {
+                    playerHealthFill.classList.remove('critical');
+                }
                 document.getElementById('aiHealth').style.width = Math.max(0, this.ai.health) + '%';
                 document.getElementById('playerStench').textContent = this.player.stench;
                 document.getElementById('aiStench').textContent = this.ai.stench;
@@ -1250,6 +1271,15 @@
                 if (this.player.hitFlash > 0) this.player.hitFlash--;
                 if (this.ai.hitFlash > 0) this.ai.hitFlash--;
                 if (this.playerHurtFrames > 0) this.playerHurtFrames--;
+
+                // Low-health heartbeat pulse — beats faster when critically low
+                if (this.player.health > 0 && this.player.health < 30) {
+                    const beatRate = this.player.health < 15 ? 28 : 48;
+                    this.lowHealthPulse = (this.lowHealthPulse + 1) % beatRate;
+                    if (this.lowHealthPulse === 0) this.sounds.playHeartbeat();
+                } else {
+                    this.lowHealthPulse = 0;
+                }
             }
 
             draw() {
@@ -1334,6 +1364,21 @@
                     grad.addColorStop(1, `rgba(200, 0, 0, ${alpha})`);
                     this.ctx.fillStyle = grad;
                     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+
+                // Low-health heartbeat vignette (pulsing red border, layered under the hit vignette)
+                if (this.player.health > 0 && this.player.health < 30) {
+                    const beatRate = this.player.health < 15 ? 28 : 48;
+                    const phase = this.lowHealthPulse / beatRate;
+                    const alpha = Math.pow(Math.sin(phase * Math.PI), 2) * 0.30;
+                    if (alpha > 0.004) {
+                        const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                        const grad = this.ctx.createRadialGradient(cx, cy, this.canvas.height * 0.18, cx, cy, this.canvas.height * 0.88);
+                        grad.addColorStop(0, 'rgba(180, 0, 0, 0)');
+                        grad.addColorStop(1, `rgba(180, 0, 0, ${alpha})`);
+                        this.ctx.fillStyle = grad;
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    }
                 }
 
                 // Persistent combo badge (below DOM HUD, above crosshair)
