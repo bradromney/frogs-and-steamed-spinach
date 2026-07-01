@@ -488,6 +488,7 @@
                 this.floatingNumbers = [];
                 this.gameRunning = true;
                 this.hitStopFrames = 0;
+                this.playerHurtFrames = 0;
                 this.playerCombo = 0;
                 this.bestCombo = 0;
 
@@ -818,6 +819,7 @@
                         target.stunned = true;
                         target.instability = Math.min(100, target.instability + 15);
                         target.hitFlash = 8;
+                        if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 25);
                         this.hitStopFrames = Math.max(this.hitStopFrames, 3);
                         this.triggerScreenShake(4, 8);
                         this.spawnImpactParticles(projectile.x, projectile.y, 'frog');
@@ -849,6 +851,7 @@
                         target.health -= dmg;
                         target.stench += 1;
                         target.hitFlash = 10;
+                        if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 40);
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
 
                         this.createSplat(projectile.x, projectile.y, 'spinach');
@@ -1246,6 +1249,7 @@
                 // Decay hit flash
                 if (this.player.hitFlash > 0) this.player.hitFlash--;
                 if (this.ai.hitFlash > 0) this.ai.hitFlash--;
+                if (this.playerHurtFrames > 0) this.playerHurtFrames--;
             }
 
             draw() {
@@ -1320,6 +1324,17 @@
                 });
 
                 this.ctx.restore(); // end screen shake translate
+
+                // Damage vignette — red edge pulse when the player takes a hit
+                if (this.playerHurtFrames > 0) {
+                    const alpha = (this.playerHurtFrames / 40) * 0.6;
+                    const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                    const grad = this.ctx.createRadialGradient(cx, cy, this.canvas.height * 0.2, cx, cy, this.canvas.height * 0.9);
+                    grad.addColorStop(0, 'rgba(200, 0, 0, 0)');
+                    grad.addColorStop(1, `rgba(200, 0, 0, ${alpha})`);
+                    this.ctx.fillStyle = grad;
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
 
                 // Persistent combo badge (below DOM HUD, above crosshair)
                 if (this.playerCombo >= 2) {
