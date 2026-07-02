@@ -419,6 +419,11 @@
                 setTimeout(() => this.createSound(56, 0.12, 'sine', 0.15), 100);
             }
 
+            playChargeRumble(power) {
+                const freq = 55 + (power / 100) * 160;
+                this.createSound(freq, 0.09, 'sawtooth', 0.025);
+            }
+
             playVictoryFanfare() {
                 // Simple ascending chord: C E G C
                 [261, 329, 392, 523].forEach((freq, i) => {
@@ -508,6 +513,7 @@
                 this.lowHealthPulse = 0;
                 this.celebrating = false;
                 this.killFlashTimer = 0;
+                this.chargeFrame = 0;
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
@@ -599,6 +605,13 @@
                 if (this.charging) {
                     this.power = Math.min(100, this.power + 2);
                     document.getElementById('powerFill').style.height = this.power + '%';
+                    this.chargeFrame++;
+                    const rumbleInterval = Math.max(8, Math.round(26 - (this.power / 100) * 18));
+                    if (this.chargeFrame % rumbleInterval === 0) {
+                        this.sounds.playChargeRumble(this.power);
+                    }
+                } else {
+                    this.chargeFrame = 0;
                 }
             }
 
@@ -1354,6 +1367,28 @@
                     }
                     this.ctx.restore();
                 });
+
+                // Power charge aura — glows behind the player while charging
+                if (this.charging && this.power > 3) {
+                    const power = this.power / 100;
+                    const cx = this.player.x + this.player.width / 2;
+                    const cy = this.player.y + this.player.height / 2;
+                    const maxR = 75 + power * 20;
+                    const r = maxR * power;
+                    const rgb = this.fKeyPressed ? '100, 210, 80' : '60, 210, 210';
+                    const outerAlpha = (0.55 * power).toFixed(3);
+                    const midAlpha = (0.22 * power).toFixed(3);
+                    this.ctx.save();
+                    const grad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+                    grad.addColorStop(0, `rgba(${rgb}, ${outerAlpha})`);
+                    grad.addColorStop(0.55, `rgba(${rgb}, ${midAlpha})`);
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    this.ctx.fillStyle = grad;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
 
                 // Draw characters
                 this.drawCharacter(this.player, true);
