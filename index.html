@@ -506,6 +506,8 @@
                 this.playerCombo = 0;
                 this.bestCombo = 0;
                 this.lowHealthPulse = 0;
+                this.celebrating = false;
+                this.killFlashTimer = 0;
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
@@ -965,6 +967,28 @@
                 this.floatingNumbers.push({ x, y, value: `COMBO x${level}!`, life: 0, maxLife: 90, combo: level });
             }
 
+            spawnConfetti(cx, cy) {
+                const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#ff9f43', '#00d2d3', '#1dd1a1', '#ffeaa7', '#a29bfe'];
+                for (let i = 0; i < 90; i++) {
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.6;
+                    const speed = 4 + Math.random() * 11;
+                    this.particles.push({
+                        x: cx + (Math.random() - 0.5) * 60,
+                        y: cy,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 1,
+                        life: 0,
+                        maxLife: 90 + Math.random() * 70,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        confetti: true,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotSpeed: (Math.random() - 0.5) * 0.28,
+                        width: 7 + Math.random() * 7,
+                        height: 4 + Math.random() * 4
+                    });
+                }
+            }
+
             updateHealthDisplay() {
                 const playerHealthFill = document.getElementById('playerHealth');
                 playerHealthFill.style.width = Math.max(0, this.player.health) + '%';
@@ -1217,11 +1241,13 @@
             }
 
             update() {
-                if (!this.gameRunning) return;
-                
-                this.updatePlayer();
-                this.updateAI();
-                this.updateProjectiles();
+                if (!this.gameRunning && !this.celebrating) return;
+
+                if (this.gameRunning) {
+                    this.updatePlayer();
+                    this.updateAI();
+                    this.updateProjectiles();
+                }
                 
                 // Update splats
                 for (let i = this.splats.length - 1; i >= 0; i--) {
@@ -1238,6 +1264,7 @@
                     p.y += p.vy;
                     p.vy += 0.18;
                     p.vx *= 0.96;
+                    if (p.rotSpeed !== undefined) p.rotation += p.rotSpeed;
                     p.life++;
                     if (p.life >= p.maxLife) this.particles.splice(i, 1);
                 }
@@ -1314,10 +1341,17 @@
                     const alpha = 1 - p.life / p.maxLife;
                     this.ctx.save();
                     this.ctx.globalAlpha = alpha;
-                    this.ctx.fillStyle = p.color;
-                    this.ctx.beginPath();
-                    this.ctx.arc(p.x, p.y, p.size * (0.4 + alpha * 0.6), 0, Math.PI * 2);
-                    this.ctx.fill();
+                    if (p.confetti) {
+                        this.ctx.translate(p.x, p.y);
+                        this.ctx.rotate(p.rotation || 0);
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.fillRect(-p.width / 2, -p.height / 2, p.width, p.height);
+                    } else {
+                        this.ctx.fillStyle = p.color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size * (0.4 + alpha * 0.6), 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
                     this.ctx.restore();
                 });
 
@@ -1354,6 +1388,16 @@
                 });
 
                 this.ctx.restore(); // end screen shake translate
+
+                // Kill flash — brief white screen bloom on the killing blow
+                if (this.killFlashTimer > 0) {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = this.killFlashTimer / 12;
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.restore();
+                    this.killFlashTimer--;
+                }
 
                 // Damage vignette — red edge pulse when the player takes a hit
                 if (this.playerHurtFrames > 0) {
@@ -1469,6 +1513,28 @@
                         streakMsg += `<br><span style="font-size:15px;color:#e67e22;">Best combo: <strong>x${this.bestCombo}</strong></span>`;
                     }
                     streakInfo.innerHTML = streakMsg;
+
+                    // Confetti celebration: flash + burst, delay modal so the moment lands
+                    this.celebrating = true;
+                    this.killFlashTimer = 12;
+                    this.spawnConfetti(this.ai.x + this.ai.width / 2, this.ai.y + this.ai.height / 2);
+
+                    if (isNewRecord && this.bestStreak > 1) {
+                        this.sounds.playRecordBreaker();
+                    } else {
+                        this.sounds.playVictoryFanfare();
+                    }
+
+                    this.updateStreakDisplay();
+                    setTimeout(() => {
+                        this.celebrating = false;
+                        gameOverDiv.classList.remove('new-record-flash');
+                        gameOverDiv.style.display = 'block';
+                        if (isNewRecord && this.bestStreak > 1) {
+                            void gameOverDiv.offsetWidth;
+                            gameOverDiv.classList.add('new-record-flash');
+                        }
+                    }, 750);
                 } else {
                     gameOverText.innerHTML = '💚 Computer Wins! 💚<br>You were overwhelmed by spinach!';
                     let lossMsg = this.winStreak > 0 ? `Streak ended at: <strong>${this.winStreak}</strong>` : '';
@@ -1478,19 +1544,10 @@
                     streakInfo.innerHTML = lossMsg;
                     this.winStreak = 0;
                     localStorage.setItem('winStreak', '0');
-                }
 
-                this.updateStreakDisplay();
-                gameOverDiv.classList.remove('new-record-flash');
-                gameOverDiv.style.display = 'block';
-
-                if (isNewRecord && this.bestStreak > 1) {
-                    void gameOverDiv.offsetWidth; // force reflow to restart animation
-                    gameOverDiv.classList.add('new-record-flash');
-                    this.sounds.playRecordBreaker();
-                } else if (winner === 'player') {
-                    this.sounds.playVictoryFanfare();
-                } else {
+                    this.updateStreakDisplay();
+                    gameOverDiv.classList.remove('new-record-flash');
+                    gameOverDiv.style.display = 'block';
                     this.sounds.playHurl();
                 }
 
@@ -1506,7 +1563,7 @@
                     this.update();
                 }
                 this.draw();
-                if (this.gameRunning) {
+                if (this.gameRunning || this.celebrating) {
                     requestAnimationFrame(() => this.gameLoop());
                 }
             }
