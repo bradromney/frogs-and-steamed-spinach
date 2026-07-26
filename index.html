@@ -466,6 +466,15 @@
                 });
                 setTimeout(() => this.createSound(1047, 0.18, 'square', 0.07), 55);
             }
+
+            playPerfect() {
+                [330, 440, 523, 659, 784, 1046].forEach((freq, i) => {
+                    setTimeout(() => {
+                        this.createSound(freq, 0.28, 'square', 0.13);
+                        if (i >= 3) this.createSound(freq * 1.5, 0.14, 'triangle', 0.07);
+                    }, i * 80);
+                });
+            }
         }
 
         class Game {
@@ -531,6 +540,8 @@
                 this.bestCombo = 0;
                 this.lowHealthPulse = 0;
                 this.celebrating = false;
+                this.tookDamage = false;
+                this.perfectTimer = 0;
                 this.killFlashTimer = 0;
                 this.chargeFrame = 0;
                 this.roundIntro = { active: true, timer: 0 };
@@ -873,7 +884,7 @@
                         const frogKbSpeed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy) || 1;
                         target.knockbackX = (projectile.vx / frogKbSpeed) * 16;
                         target.knockbackY = (projectile.vy / frogKbSpeed) * 16;
-                        if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 25);
+                        if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 25); this.tookDamage = true; }
                         this.hitStopFrames = Math.max(this.hitStopFrames, 3);
                         this.triggerScreenShake(4, 8);
                         this.spawnImpactParticles(projectile.x, projectile.y, 'frog');
@@ -908,7 +919,7 @@
                         const spinKbSpeed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy) || 1;
                         target.knockbackX = (projectile.vx / spinKbSpeed) * 26;
                         target.knockbackY = (projectile.vy / spinKbSpeed) * 26;
-                        if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 40);
+                        if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 40); this.tookDamage = true; }
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
 
                         this.createSplat(projectile.x, projectile.y, 'spinach');
@@ -1355,6 +1366,7 @@
                 if (this.player.hitFlash > 0) this.player.hitFlash--;
                 if (this.ai.hitFlash > 0) this.ai.hitFlash--;
                 if (this.playerHurtFrames > 0) this.playerHurtFrames--;
+                if (this.perfectTimer > 0) this.perfectTimer--;
 
                 // Low-health heartbeat pulse — beats faster when critically low
                 if (this.player.health > 0 && this.player.health < 30) {
@@ -1476,6 +1488,23 @@
                     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                     this.ctx.restore();
                     this.killFlashTimer--;
+                }
+
+                // PERFECT round splash — pulsing purple banner when player wins untouched
+                if (this.perfectTimer > 0) {
+                    const pFade = Math.min(1, (this.perfectTimer / 50) * 2.5);
+                    const pBounce = 1 + Math.sin(Date.now() * 0.018) * 0.07;
+                    this.ctx.save();
+                    this.ctx.globalAlpha = pFade;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.font = `bold ${Math.round(72 * pBounce)}px monospace`;
+                    this.ctx.lineWidth = 11;
+                    this.ctx.strokeStyle = '#5f27cd';
+                    this.ctx.strokeText('PERFECT!', this.canvas.width / 2, this.canvas.height * 0.4);
+                    this.ctx.fillStyle = '#e056fd';
+                    this.ctx.fillText('PERFECT!', this.canvas.width / 2, this.canvas.height * 0.4);
+                    this.ctx.restore();
                 }
 
                 // Damage vignette — red edge pulse when the player takes a hit
@@ -1646,6 +1675,10 @@
                     if (this.bestCombo >= 2) {
                         streakMsg += `<br><span style="font-size:15px;color:#e67e22;">Best combo: <strong>x${this.bestCombo}</strong></span>`;
                     }
+                    if (!this.tookDamage) {
+                        streakMsg += '<br><strong style="color:#e056fd;font-size:19px">★ PERFECT ROUND! ★</strong>';
+                        this.perfectTimer = 50;
+                    }
                     streakInfo.innerHTML = streakMsg;
 
                     // Confetti celebration: flash + burst, delay modal so the moment lands
@@ -1658,6 +1691,7 @@
                     } else {
                         this.sounds.playVictoryFanfare();
                     }
+                    if (!this.tookDamage) setTimeout(() => this.sounds.playPerfect(), 180);
 
                     this.updateStreakDisplay();
                     setTimeout(() => {
