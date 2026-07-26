@@ -481,7 +481,9 @@
                     instability: 0,
                     stunned: false,
                     speed: 3,
-                    hitFlash: 0
+                    hitFlash: 0,
+                    knockbackX: 0,
+                    knockbackY: 0
                 };
 
                 this.ai = {
@@ -497,6 +499,8 @@
                     nextAction: 0,
                     target: { x: 0, y: 0 },
                     confused: false,
+                    knockbackX: 0,
+                    knockbackY: 0,
                     hitFlash: 0
                 };
 
@@ -849,6 +853,9 @@
                         target.stunned = true;
                         target.instability = Math.min(100, target.instability + 15);
                         target.hitFlash = 8;
+                        const frogKbSpeed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy) || 1;
+                        target.knockbackX = (projectile.vx / frogKbSpeed) * 16;
+                        target.knockbackY = (projectile.vy / frogKbSpeed) * 16;
                         if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 25);
                         this.hitStopFrames = Math.max(this.hitStopFrames, 3);
                         this.triggerScreenShake(4, 8);
@@ -881,6 +888,9 @@
                         target.health -= dmg;
                         target.stench += 1;
                         target.hitFlash = 10;
+                        const spinKbSpeed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy) || 1;
+                        target.knockbackX = (projectile.vx / spinKbSpeed) * 26;
+                        target.knockbackY = (projectile.vy / spinKbSpeed) * 26;
                         if (target === this.player) this.playerHurtFrames = Math.max(this.playerHurtFrames, 40);
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
 
@@ -1031,7 +1041,7 @@
 
             drawCharacter(character, isPlayer) {
                 this.ctx.save();
-                
+
                 // Apply instability shaking
                 const shakeLevel = Math.min(5, Math.floor(character.instability / 20) + 1);
                 if (character.instability > 0) {
@@ -1039,7 +1049,10 @@
                     const shakeY = (Math.random() - 0.5) * shakeLevel;
                     this.ctx.translate(shakeX, shakeY);
                 }
-                
+
+                // Visual knockback spring — lurches on impact, springs back each frame
+                this.ctx.translate(character.knockbackX || 0, character.knockbackY || 0);
+
                 // Terrible toddler art
                 this.ctx.strokeStyle = '#000';
                 this.ctx.lineWidth = 3;
@@ -1285,6 +1298,12 @@
                 // Reduce instability over time
                 this.player.instability = Math.max(0, this.player.instability - 0.1);
                 this.ai.instability = Math.max(0, this.ai.instability - 0.1);
+
+                // Spring knockback back to zero
+                this.player.knockbackX *= 0.72;
+                this.player.knockbackY *= 0.72;
+                this.ai.knockbackX *= 0.72;
+                this.ai.knockbackY *= 0.72;
                 this.updateInstabilityDisplay();
 
                 // Decay screen shake
