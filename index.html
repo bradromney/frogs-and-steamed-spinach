@@ -451,6 +451,21 @@
                     setTimeout(() => this.createSound(freq * 2, 0.14, 'triangle', 0.07), 70);
                 }
             }
+
+            playRoundStart() {
+                // Three-note ascending "GET READY" arpeggio
+                [196, 247, 294].forEach((freq, i) => {
+                    setTimeout(() => this.createSound(freq, 0.18, 'square', 0.13), i * 130);
+                });
+            }
+
+            playFight() {
+                // Punchy chord burst for "FIGHT!"
+                [262, 330, 523].forEach(freq => {
+                    this.createSound(freq, 0.32, 'square', 0.11);
+                });
+                setTimeout(() => this.createSound(1047, 0.18, 'square', 0.07), 55);
+            }
         }
 
         class Game {
@@ -518,6 +533,7 @@
                 this.celebrating = false;
                 this.killFlashTimer = 0;
                 this.chargeFrame = 0;
+                this.roundIntro = { active: true, timer: 0 };
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
@@ -541,7 +557,8 @@
 
                 this.canvas.addEventListener('mousedown', (e) => {
                     if (!this.gameRunning || this.player.stunned) return;
-                    
+                    if (this.roundIntro.active) return;
+
                     this.mouse.down = true;
                     this.charging = true;
                     this.power = 0;
@@ -1269,6 +1286,14 @@
             update() {
                 if (!this.gameRunning && !this.celebrating) return;
 
+                if (this.roundIntro.active) {
+                    this.roundIntro.timer++;
+                    if (this.roundIntro.timer === 20) this.sounds.playRoundStart();
+                    if (this.roundIntro.timer === 45) this.sounds.playFight();
+                    if (this.roundIntro.timer >= 75) this.roundIntro.active = false;
+                    return;
+                }
+
                 if (this.gameRunning) {
                     this.updatePlayer();
                     this.updateAI();
@@ -1540,6 +1565,61 @@
                     this.ctx.lineTo(this.mouse.x, this.mouse.y + 10);
                     this.ctx.stroke();
                 }
+
+                if (this.roundIntro.active) this.drawRoundIntro();
+            }
+
+            drawRoundIntro() {
+                const t = this.roundIntro.timer;
+                const cx = this.canvas.width / 2;
+                const cy = this.canvas.height / 2;
+
+                this.ctx.save();
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+
+                if (t < 45) {
+                    // Dark overlay fades in
+                    const overlayAlpha = Math.min(0.45, (t / 15) * 0.45);
+                    this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                    // "GET READY!" slides in from above
+                    const textAlpha = Math.min(1, t / 10);
+                    const offsetY = Math.max(0, (1 - t / 10)) * -60;
+                    this.ctx.globalAlpha = textAlpha;
+                    const scale = 0.8 + 0.2 * Math.min(1, t / 10);
+                    this.ctx.font = `bold ${Math.round(54 * scale)}px monospace`;
+                    this.ctx.lineWidth = 8;
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.strokeText('GET READY!', cx, cy + offsetY);
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.fillText('GET READY!', cx, cy + offsetY);
+                } else {
+                    // "FIGHT!" phase
+                    const fightT = t - 45;
+
+                    // Dark overlay fades out
+                    const overlayAlpha = 0.45 * Math.max(0, 1 - fightT / 18);
+                    if (overlayAlpha > 0) {
+                        this.ctx.globalAlpha = 1;
+                        this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    }
+
+                    // "FIGHT!" punches in with overshoot scale
+                    const alpha = Math.min(1, fightT / 5);
+                    const overshoot = fightT < 7 ? 1 + (1 - fightT / 7) * 0.55 : 1.0;
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.font = `bold ${Math.round(88 * overshoot)}px monospace`;
+                    this.ctx.lineWidth = 11;
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.strokeText('FIGHT!', cx, cy);
+                    this.ctx.fillStyle = '#ffd700';
+                    this.ctx.fillText('FIGHT!', cx, cy);
+                }
+
+                this.ctx.restore();
             }
 
             endGame(winner) {
