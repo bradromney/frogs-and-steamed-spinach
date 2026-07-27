@@ -543,6 +543,8 @@
                 this.floatingNumbers = [];
                 this.gameRunning = true;
                 this.hitStopFrames = 0;
+                this.koTextTimer = 0;
+                this.koWinner = null;
                 this.playerHurtFrames = 0;
                 this.playerCombo = 0;
                 this.bestCombo = 0;
@@ -1401,6 +1403,7 @@
                 if (this.ai.hitFlash > 0) this.ai.hitFlash--;
                 if (this.playerHurtFrames > 0) this.playerHurtFrames--;
                 if (this.perfectTimer > 0) this.perfectTimer--;
+                if (this.koTextTimer > 0) this.koTextTimer--;
 
                 // Low-health heartbeat pulse — beats faster when critically low
                 if (this.player.health > 0 && this.player.health < 30) {
@@ -1629,6 +1632,27 @@
                     this.ctx.stroke();
                 }
 
+                // Round-end K.O. / loss announcement — fighting-game punch-in overlay
+                if (this.koTextTimer > 0) {
+                    const maxTimer = this.koWinner === 'player' ? 44 : 30;
+                    const elapsed = maxTimer - this.koTextTimer;
+                    const alpha = Math.min(1, this.koTextTimer / 8);
+                    const overshoot = elapsed < 8 ? 1 + (1 - elapsed / 8) * 0.65 : 1.0;
+                    const text = this.koWinner === 'player' ? 'K.O.!' : "STENCH'D!";
+                    const fillColor = this.koWinner === 'player' ? '#ffd700' : '#ff4455';
+                    this.ctx.save();
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.font = `bold ${Math.round(110 * overshoot)}px monospace`;
+                    this.ctx.lineWidth = 14;
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.strokeText(text, this.canvas.width / 2, this.canvas.height / 2);
+                    this.ctx.fillStyle = fillColor;
+                    this.ctx.fillText(text, this.canvas.width / 2, this.canvas.height / 2);
+                    this.ctx.restore();
+                }
+
                 if (this.roundIntro.active) this.drawRoundIntro();
             }
 
@@ -1726,6 +1750,8 @@
 
                     // Confetti celebration: flash + burst, delay modal so the moment lands
                     this.celebrating = true;
+                    this.koTextTimer = 44;
+                    this.koWinner = 'player';
                     this.killFlashTimer = 12;
                     this.spawnConfetti(this.ai.x + this.ai.width / 2, this.ai.y + this.ai.height / 2);
 
@@ -1760,9 +1786,15 @@
                     localStorage.setItem('winStreak', '0');
 
                     this.updateStreakDisplay();
-                    gameOverDiv.classList.remove('new-record-flash');
-                    gameOverDiv.style.display = 'block';
+                    this.celebrating = true;
+                    this.koTextTimer = 30;
+                    this.koWinner = 'ai';
                     this.sounds.playHurl();
+                    setTimeout(() => {
+                        this.celebrating = false;
+                        gameOverDiv.classList.remove('new-record-flash');
+                        gameOverDiv.style.display = 'block';
+                    }, 500);
                 }
 
                 if (window.gameAnalytics) {
