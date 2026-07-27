@@ -1117,6 +1117,25 @@
                 // Visual knockback spring — lurches on impact, springs back each frame
                 this.ctx.translate(character.knockbackX || 0, character.knockbackY || 0);
 
+                // Squash & stretch — hit squash (wide/short on impact), charge anticipation (tall/narrow)
+                const ssCX = character.x + character.width / 2;
+                const ssCY = character.y + character.height;
+                let ssX = 1, ssY = 1;
+                if (character.hitFlash > 0) {
+                    const t = character.hitFlash / 10;
+                    ssX = 1 + t * 0.32;
+                    ssY = 1 - t * 0.22;
+                } else if (isPlayer && this.charging && this.power > 5) {
+                    const p = this.power / 100;
+                    ssX = 1 - p * 0.09;
+                    ssY = 1 + p * 0.12;
+                }
+                if (ssX !== 1 || ssY !== 1) {
+                    this.ctx.translate(ssCX, ssCY);
+                    this.ctx.scale(ssX, ssY);
+                    this.ctx.translate(-ssCX, -ssCY);
+                }
+
                 // Terrible toddler art
                 this.ctx.strokeStyle = '#000';
                 this.ctx.lineWidth = 3;
