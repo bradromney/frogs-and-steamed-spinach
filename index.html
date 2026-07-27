@@ -311,6 +311,11 @@
                 <div class="streak-number" id="currentStreak">0</div>
                 <div class="streak-best">BEST: <span id="bestStreak">0</span></div>
                 <div class="streak-best" id="difficultyLevel">ENEMY LVL 1</div>
+                <div style="border-top:1px solid #ccc;margin-top:5px;padding-top:5px">
+                    <div style="font-size:11px;font-weight:bold;color:#555">SCORE</div>
+                    <div style="font-size:22px;line-height:1.1;color:#2980b9;font-weight:bold" id="scoreDisplay">0</div>
+                    <div class="streak-best">HI: <span id="bestScoreDisplay">0</span></div>
+                </div>
             </div>
             <div class="player-info right">
                 <div>COMPUTER</div>
@@ -488,6 +493,9 @@
 
                 this.winStreak = parseInt(localStorage.getItem('winStreak') || '0');
                 this.bestStreak = parseInt(localStorage.getItem('bestStreak') || '0');
+                this.score = 0;
+                this.bestScore = parseInt(localStorage.getItem('bestScore') || '0');
+                this.prevBestScore = this.bestScore;
 
                 this.keys = {};
                 this.mouse = { x: 0, y: 0, down: false };
@@ -548,6 +556,7 @@
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
+                this.updateScoreDisplay();
                 this.gameLoop();
             }
 
@@ -904,6 +913,9 @@
                         this.sounds.playStun();
                         this.updateInstabilityDisplay();
                         this.handleCombo(projectile.owner === 'player');
+                        if (projectile.owner === 'player') {
+                            this.addScore(50 * Math.max(1, this.playerCombo));
+                        }
 
                         // Track hit
                         if (window.gameAnalytics) {
@@ -931,6 +943,9 @@
 
                         this.updateHealthDisplay();
                         this.handleCombo(projectile.owner === 'player');
+                        if (projectile.owner === 'player') {
+                            this.addScore(Math.round(dmg) * Math.max(1, this.playerCombo));
+                        }
 
                         // Track hit
                         if (window.gameAnalytics) {
@@ -1065,6 +1080,25 @@
                 el.style.color = this.winStreak >= 3 ? '#e74c3c' : this.winStreak >= 1 ? '#e67e22' : '#aaa';
                 const diffEl = document.getElementById('difficultyLevel');
                 if (diffEl) diffEl.textContent = `ENEMY LVL ${this.winStreak + 1}`;
+            }
+
+            updateScoreDisplay() {
+                const el = document.getElementById('scoreDisplay');
+                if (el) el.textContent = this.score;
+                const bel = document.getElementById('bestScoreDisplay');
+                if (bel) bel.textContent = this.bestScore;
+            }
+
+            addScore(points) {
+                this.score += points;
+                const el = document.getElementById('scoreDisplay');
+                if (el) el.textContent = this.score;
+                if (this.score > this.bestScore) {
+                    this.bestScore = this.score;
+                    localStorage.setItem('bestScore', this.bestScore);
+                    const bel = document.getElementById('bestScoreDisplay');
+                    if (bel) bel.textContent = this.bestScore;
+                }
             }
 
             drawCharacter(character, isPlayer) {
@@ -1667,6 +1701,11 @@
                     }
                     localStorage.setItem('winStreak', this.winStreak);
 
+                    if (!this.tookDamage) {
+                        this.addScore(500);
+                    }
+                    const isNewScoreRecord = this.score > this.prevBestScore && this.score > 0;
+
                     gameOverText.innerHTML = '🎉 You Won! 🎉<br>The computer gave up from the stench!';
                     let streakMsg = `Win Streak: <strong>${this.winStreak}</strong>`;
                     if (isNewRecord && this.winStreak > 1) {
@@ -1678,6 +1717,10 @@
                     if (!this.tookDamage) {
                         streakMsg += '<br><strong style="color:#e056fd;font-size:19px">★ PERFECT ROUND! ★</strong>';
                         this.perfectTimer = 50;
+                    }
+                    streakMsg += `<br><span style="font-size:15px;">Score: <strong style="color:#2980b9">${this.score}</strong></span>`;
+                    if (isNewScoreRecord) {
+                        streakMsg += '<br><strong style="color:#2980b9;font-size:17px">★ NEW HIGH SCORE! ★</strong>';
                     }
                     streakInfo.innerHTML = streakMsg;
 
@@ -1708,6 +1751,9 @@
                     let lossMsg = this.winStreak > 0 ? `Streak ended at: <strong>${this.winStreak}</strong>` : '';
                     if (this.bestCombo >= 2) {
                         lossMsg += (lossMsg ? '<br>' : '') + `<span style="font-size:15px;color:#e67e22;">Best combo: <strong>x${this.bestCombo}</strong></span>`;
+                    }
+                    if (this.score > 0) {
+                        lossMsg += (lossMsg ? '<br>' : '') + `<span style="font-size:15px;">Score: <strong style="color:#2980b9">${this.score}</strong></span>`;
                     }
                     streakInfo.innerHTML = lossMsg;
                     this.winStreak = 0;
