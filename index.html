@@ -480,6 +480,68 @@
                     }, i * 80);
                 });
             }
+
+            startBackgroundMusic() {
+                if (!this.context || this.bgMusicPlaying) return;
+                this.bgMusicPlaying = true;
+
+                const SIX = 60 / 128 / 4; // sixteenth note at 128 BPM
+
+                // Two 16-step phrases (32 sixteenths total = ~3.75s loop)
+                // [freq_hz, duration_in_sixteenths]
+                const mel = [
+                    [329.63, 2], [392.00, 2], [440.00, 2], [523.25, 3], [440.00, 1],
+                    [392.00, 2], [329.63, 2], [293.66, 2],
+                    [349.23, 2], [440.00, 2], [523.25, 2], [587.33, 3], [523.25, 1],
+                    [440.00, 2], [392.00, 2], [261.63, 2],
+                ];
+                const bas = [
+                    [130.81, 8], [196.00, 8],
+                    [174.61, 8], [196.00, 4], [130.81, 4],
+                ];
+
+                let mi = 0, bi = 0;
+                let mt = this.context.currentTime + 0.1;
+                let bt = this.context.currentTime + 0.1;
+
+                const sched = (freq, t, dur, vol) => {
+                    const o = this.context.createOscillator();
+                    const g = this.context.createGain();
+                    o.connect(g);
+                    g.connect(this.context.destination);
+                    o.type = 'square';
+                    o.frequency.value = freq;
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + Math.max(0.02, dur - 0.02));
+                    o.start(t);
+                    o.stop(t + dur);
+                };
+
+                const tick = () => {
+                    if (!this.bgMusicPlaying) return;
+                    const ahead = this.context.currentTime + 0.2;
+                    while (mt < ahead) {
+                        const [f, d] = mel[mi % mel.length];
+                        sched(f, mt, d * SIX * 0.82, 0.052);
+                        mt += d * SIX;
+                        mi++;
+                    }
+                    while (bt < ahead) {
+                        const [f, d] = bas[bi % bas.length];
+                        sched(f, bt, d * SIX * 0.72, 0.032);
+                        bt += d * SIX;
+                        bi++;
+                    }
+                    this.bgTimer = setTimeout(tick, 50);
+                };
+                tick();
+            }
+
+            stopBackgroundMusic() {
+                this.bgMusicPlaying = false;
+                if (this.bgTimer) { clearTimeout(this.bgTimer); this.bgTimer = null; }
+            }
         }
 
         class Game {
@@ -555,6 +617,7 @@
                 this.killFlashTimer = 0;
                 this.chargeFrame = 0;
                 this.roundIntro = { active: true, timer: 0 };
+                this.musicStarted = false;
 
                 this.initEventListeners();
                 this.updateStreakDisplay();
@@ -580,6 +643,15 @@
                 this.canvas.addEventListener('mousedown', (e) => {
                     if (!this.gameRunning || this.player.stunned) return;
                     if (this.roundIntro.active) return;
+
+                    if (!this.musicStarted) {
+                        this.musicStarted = true;
+                        const ctx = this.sounds.context;
+                        if (ctx) {
+                            const go = () => this.sounds.startBackgroundMusic();
+                            ctx.state === 'suspended' ? ctx.resume().then(go) : go();
+                        }
+                    }
 
                     this.mouse.down = true;
                     this.charging = true;
@@ -1730,6 +1802,7 @@
 
             endGame(winner) {
                 this.gameRunning = false;
+                this.sounds.stopBackgroundMusic();
                 const gameOverDiv = document.getElementById('gameOver');
                 const gameOverText = document.getElementById('gameOverText');
                 const streakInfo = document.getElementById('streakInfo');
