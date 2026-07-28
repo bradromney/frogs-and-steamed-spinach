@@ -472,6 +472,14 @@
                 setTimeout(() => this.createSound(1047, 0.18, 'square', 0.07), 55);
             }
 
+            playLevelWarn(level) {
+                // Descending ominous 3-note drop; pitch lowers and volume creeps up as levels rise
+                const base = Math.max(80, 195 - (level - 2) * 13);
+                this.createSound(base * 1.5, 0.42, 'sawtooth', 0.08);
+                setTimeout(() => this.createSound(base, 0.65, 'sawtooth', 0.11), 190);
+                setTimeout(() => this.createSound(base * 0.75, 0.55, 'square', 0.09), 400);
+            }
+
             playPerfect() {
                 [330, 440, 523, 659, 784, 1046].forEach((freq, i) => {
                     setTimeout(() => {
@@ -1426,6 +1434,7 @@
 
                 if (this.roundIntro.active) {
                     this.roundIntro.timer++;
+                    if (this.roundIntro.timer === 15 && this.winStreak > 0) this.sounds.playLevelWarn(this.winStreak + 1);
                     if (this.roundIntro.timer === 20) this.sounds.playRoundStart();
                     if (this.roundIntro.timer === 45) this.sounds.playFight();
                     if (this.roundIntro.timer >= 75) this.roundIntro.active = false;
@@ -1773,6 +1782,23 @@
                     this.ctx.strokeText('GET READY!', cx, cy + offsetY);
                     this.ctx.fillStyle = '#ffffff';
                     this.ctx.fillText('GET READY!', cx, cy + offsetY);
+
+                    // Enemy level warning — slides up from below after GET READY lands
+                    if (this.winStreak > 0) {
+                        const lvl = this.winStreak + 1;
+                        const lvlFade = Math.min(1, Math.max(0, (t - 10) / 10));
+                        const lvlRise = Math.max(0, (1 - Math.min(1, Math.max(0, (t - 10) / 10)))) * 28;
+                        const lvlColor = lvl >= 7 ? '#ff4455' : lvl >= 4 ? '#ff9f43' : '#ffd700';
+                        const pulse = 1 + Math.sin(t * 0.32) * 0.055;
+                        this.ctx.globalAlpha = lvlFade;
+                        this.ctx.font = `bold ${Math.round(30 * scale * pulse)}px monospace`;
+                        this.ctx.lineWidth = 5;
+                        this.ctx.strokeStyle = '#000';
+                        const lvlText = `ENEMY LVL ${lvl}`;
+                        this.ctx.strokeText(lvlText, cx, cy + offsetY + 58 + lvlRise);
+                        this.ctx.fillStyle = lvlColor;
+                        this.ctx.fillText(lvlText, cx, cy + offsetY + 58 + lvlRise);
+                    }
                 } else {
                     // "FIGHT!" phase
                     const fightT = t - 45;
