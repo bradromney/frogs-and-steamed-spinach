@@ -627,6 +627,13 @@
                 this.roundIntro = { active: true, timer: 0 };
                 this.musicStarted = false;
 
+                this.clouds = Array.from({length: 6}, () => ({
+                    x: Math.random() * (this.canvas.width + 200) - 100,
+                    y: 35 + Math.random() * 160,
+                    w: 55 + Math.random() * 75,
+                    speed: 0.12 + Math.random() * 0.22
+                }));
+
                 this.initEventListeners();
                 this.updateStreakDisplay();
                 this.updateScoreDisplay();
@@ -1454,7 +1461,51 @@
                 this.ctx.restore();
             }
 
+            drawBackground() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const t = Date.now() * 0.001;
+
+                // Retro rotating sun — placed in the upper-center-right sky
+                ctx.save();
+                const sunX = Math.round(w * 0.65);
+                const sunY = 72;
+                ctx.fillStyle = '#FFE44D';
+                ctx.strokeStyle = '#D4A800';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 28, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                for (let r = 0; r < 8; r++) {
+                    const a = (r / 8) * Math.PI * 2 + t * 0.20;
+                    ctx.beginPath();
+                    ctx.moveTo(sunX + Math.cos(a) * 33, sunY + Math.sin(a) * 33);
+                    ctx.lineTo(sunX + Math.cos(a) * 46, sunY + Math.sin(a) * 46);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // Drifting retro clouds — fluffy layered circles, always in the sky band
+                ctx.save();
+                ctx.fillStyle = 'rgba(255,255,255,0.88)';
+                this.clouds.forEach(c => {
+                    const cx = c.x, cy = c.y, r = c.w / 2;
+                    ctx.beginPath(); ctx.arc(cx,            cy,            r * 0.60, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx + r * 0.50, cy - r * 0.10, r * 0.47, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx - r * 0.40, cy + r * 0.05, r * 0.39, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx + r * 0.10, cy + r * 0.20, r * 0.52, 0, Math.PI * 2); ctx.fill();
+                });
+                ctx.restore();
+            }
+
             update() {
+                // Drift clouds every frame regardless of game state
+                this.clouds.forEach(c => {
+                    c.x += c.speed;
+                    if (c.x > this.canvas.width + 130) c.x = -130;
+                });
+
                 if (!this.gameRunning && !this.celebrating) return;
 
                 if (this.roundIntro.active) {
@@ -1544,6 +1595,8 @@
                 // Clear canvas with terrible background
                 this.ctx.fillStyle = '#87ceeb';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.drawBackground();
 
                 // Apply screen shake
                 this.ctx.save();
