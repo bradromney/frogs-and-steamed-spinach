@@ -615,6 +615,8 @@
                 this.hitStopFrames = 0;
                 this.koTextTimer = 0;
                 this.koWinner = null;
+                this.newHiScoreFlashTimer = 0;
+                this.newHiScoreFired = false;
                 this.playerHurtFrames = 0;
                 this.playerCombo = 0;
                 this.bestCombo = 0;
@@ -1190,6 +1192,11 @@
                 this.score += points;
                 const el = document.getElementById('scoreDisplay');
                 if (el) el.textContent = this.score;
+                if (this.gameRunning && this.score > this.prevBestScore && !this.newHiScoreFired) {
+                    this.newHiScoreFired = true;
+                    this.newHiScoreFlashTimer = 160;
+                    this.sounds.playVictoryFanfare();
+                }
                 if (this.score > this.bestScore) {
                     this.bestScore = this.score;
                     localStorage.setItem('bestScore', this.bestScore);
@@ -1683,6 +1690,7 @@
                 if (this.playerHurtFrames > 0) this.playerHurtFrames--;
                 if (this.perfectTimer > 0) this.perfectTimer--;
                 if (this.koTextTimer > 0) this.koTextTimer--;
+                if (this.newHiScoreFlashTimer > 0) this.newHiScoreFlashTimer--;
 
                 // Low-health heartbeat pulse — beats faster when critically low
                 if (this.player.health > 0 && this.player.health < 30) {
@@ -1822,6 +1830,28 @@
                     this.ctx.strokeText('PERFECT!', this.canvas.width / 2, this.canvas.height * 0.4);
                     this.ctx.fillStyle = '#e056fd';
                     this.ctx.fillText('PERFECT!', this.canvas.width / 2, this.canvas.height * 0.4);
+                    this.ctx.restore();
+                }
+
+                // New hi-score mid-game flash — punch-in gold banner when score first beats personal best
+                if (this.newHiScoreFlashTimer > 0) {
+                    const elapsed = 160 - this.newHiScoreFlashTimer;
+                    const fadeOut = Math.min(1, this.newHiScoreFlashTimer / 22);
+                    const fadeIn = Math.min(1, elapsed / 4);
+                    const alpha = fadeIn * fadeOut;
+                    const overshoot = elapsed < 9 ? 1 + (1 - elapsed / 9) * 0.55 : 1.0;
+                    const shimmer = 1 + Math.sin(Date.now() * 0.022) * 0.04;
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha * 0.88;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    const fontSize = Math.round(64 * overshoot * shimmer);
+                    this.ctx.font = `bold ${fontSize}px monospace`;
+                    this.ctx.lineWidth = 11;
+                    this.ctx.strokeStyle = '#5f27cd';
+                    this.ctx.strokeText('★ NEW RECORD! ★', this.canvas.width / 2, this.canvas.height * 0.3);
+                    this.ctx.fillStyle = '#ffd700';
+                    this.ctx.fillText('★ NEW RECORD! ★', this.canvas.width / 2, this.canvas.height * 0.3);
                     this.ctx.restore();
                 }
 
