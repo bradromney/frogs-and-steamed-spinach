@@ -1254,20 +1254,123 @@
                 this.ctx.fill();
                 this.ctx.stroke();
                 
-                // Eyes - crooked dots
-                this.ctx.fillStyle = '#000';
-                this.ctx.beginPath();
-                this.ctx.ellipse(character.x + 25, character.y + 12, 2, 3, 0.2, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.beginPath();
-                this.ctx.ellipse(character.x + 35, character.y + 10, 3, 2, -0.3, 0, Math.PI * 2);
-                this.ctx.fill();
-                
-                // Mouth - squiggly line
-                this.ctx.beginPath();
-                this.ctx.moveTo(character.x + 27, character.y + 20);
-                this.ctx.quadraticCurveTo(character.x + 30, character.y + 22 + Math.sin(Date.now() * 0.05) * 2, character.x + 33, character.y + 19);
-                this.ctx.stroke();
+                // Eyes - state-based expressions
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 2;
+                if (character.stunned) {
+                    // X eyes — classic cartoon KO
+                    const drawX = (ex, ey) => {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(ex - 3, ey - 3); this.ctx.lineTo(ex + 3, ey + 3);
+                        this.ctx.moveTo(ex + 3, ey - 3); this.ctx.lineTo(ex - 3, ey + 3);
+                        this.ctx.stroke();
+                    };
+                    drawX(character.x + 25, character.y + 12);
+                    drawX(character.x + 35, character.y + 10);
+                } else if (character.health < 15) {
+                    // Wide scared eyes — visible whites + tiny pupils
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 25, character.y + 12, 4, 5, 0.2, 0, Math.PI * 2);
+                    this.ctx.fill(); this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 35, character.y + 10, 5, 4, -0.3, 0, Math.PI * 2);
+                    this.ctx.fill(); this.ctx.stroke();
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 25, character.y + 13, 2, 2.5, 0.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 35, character.y + 11, 2.5, 2, -0.3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else if (isPlayer && this.charging && this.power > 20) {
+                    // Squinting focused eyes
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 25, character.y + 12, 3, 1.5, 0.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 35, character.y + 10, 4, 1.5, -0.3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else {
+                    // Default crooked dots
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 25, character.y + 12, 2, 3, 0.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 35, character.y + 10, 3, 2, -0.3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                // Mouth - state-based expressions
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 3;
+                if (character.stunned) {
+                    // Wobbly confused squiggle
+                    const t = Date.now() * 0.006;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(character.x + 25, character.y + 21);
+                    this.ctx.bezierCurveTo(
+                        character.x + 28, character.y + 18 + Math.sin(t) * 3,
+                        character.x + 32, character.y + 24 + Math.sin(t + 1) * 3,
+                        character.x + 35, character.y + 20
+                    );
+                    this.ctx.stroke();
+                } else if (character.health < 15) {
+                    // Open O mouth — shocked
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 30, character.y + 21, 4, 3.5, 0, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                } else if (character.health < 30) {
+                    // Frown arc
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(character.x + 26, character.y + 22);
+                    this.ctx.quadraticCurveTo(character.x + 30, character.y + 18, character.x + 34, character.y + 22);
+                    this.ctx.stroke();
+                } else if (isPlayer && this.charging && this.power > 20) {
+                    // Gritted teeth — horizontal line with tick marks
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(character.x + 26, character.y + 20);
+                    this.ctx.lineTo(character.x + 34, character.y + 20);
+                    this.ctx.stroke();
+                    this.ctx.lineWidth = 1.5;
+                    for (let ti = 0; ti < 4; ti++) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(character.x + 27 + ti * 2, character.y + 20);
+                        this.ctx.lineTo(character.x + 27 + ti * 2, character.y + 22.5);
+                        this.ctx.stroke();
+                    }
+                    this.ctx.lineWidth = 3;
+                } else {
+                    // Default squiggly smile
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(character.x + 27, character.y + 20);
+                    this.ctx.quadraticCurveTo(character.x + 30, character.y + 22 + Math.sin(Date.now() * 0.05) * 2, character.x + 33, character.y + 19);
+                    this.ctx.stroke();
+                }
+
+                // Sweat drop when low health (bounces, anime-style)
+                if (character.health < 30 && !character.stunned) {
+                    const dropY = character.y + 7 + Math.abs(Math.sin(Date.now() * 0.004)) * 4;
+                    this.ctx.save();
+                    this.ctx.fillStyle = '#88ccff';
+                    this.ctx.strokeStyle = '#4499cc';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.globalAlpha = 0.85;
+                    this.ctx.beginPath();
+                    this.ctx.arc(character.x + 44, dropY + 4, 3, 0, Math.PI * 2);
+                    this.ctx.fill(); this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(character.x + 42, dropY + 4);
+                    this.ctx.lineTo(character.x + 44, dropY - 2);
+                    this.ctx.lineTo(character.x + 46, dropY + 4);
+                    this.ctx.closePath();
+                    this.ctx.fill(); this.ctx.stroke();
+                    this.ctx.restore();
+                }
                 
                 // Arms - wavy lines
                 this.ctx.beginPath();
