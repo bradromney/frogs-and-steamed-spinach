@@ -489,6 +489,21 @@
                 });
             }
 
+            playFrogBounce() {
+                if (!this.context) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                osc.connect(gain);
+                gain.connect(this.context.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, this.context.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(95, this.context.currentTime + 0.17);
+                gain.gain.setValueAtTime(0.10, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.17);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 0.17);
+            }
+
             startBackgroundMusic() {
                 if (!this.context || this.bgMusicPlaying) return;
                 this.bgMusicPlaying = true;
@@ -967,6 +982,17 @@
                         p.vy += Math.sin(p.hopPhase) * 0.45;
                     }
 
+                    // Frog hits the ground — one satisfying bounce before vanishing
+                    if (p.type === 'frog' && !p.bounced && p.y >= this.canvas.height - 22) {
+                        p.bounced = true;
+                        p.y = this.canvas.height - 24;
+                        p.vy = -1.8;
+                        p.hopPhase = Math.PI; // force next sinusoidal steps to push upward
+                        p.vx *= 0.65;
+                        this.spawnDustPuff(p.x, p.y);
+                        this.sounds.playFrogBounce();
+                    }
+
                     // Check for explosions
                     if (p.willExplode && p.life >= p.maxLife) {
                         this.createExplosion(p.x, p.y);
@@ -1111,6 +1137,24 @@
                         maxLife: 22 + Math.random() * 18,
                         size: 2.5 + Math.random() * 3.5,
                         color: colors[Math.floor(Math.random() * colors.length)]
+                    });
+                }
+            }
+
+            spawnDustPuff(x, y) {
+                const dustColors = ['#c8a96e', '#b8976a', '#d4b483', '#a0855c'];
+                for (let i = 0; i < 5; i++) {
+                    const angle = -Math.PI + Math.random() * Math.PI;
+                    const speed = 0.7 + Math.random() * 1.8;
+                    this.particles.push({
+                        x: x + (Math.random() - 0.5) * 14,
+                        y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 0.5,
+                        life: 0,
+                        maxLife: 16 + Math.random() * 10,
+                        size: 1.5 + Math.random() * 2,
+                        color: dustColors[Math.floor(Math.random() * dustColors.length)]
                     });
                 }
             }
