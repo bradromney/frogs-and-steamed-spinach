@@ -1274,6 +1274,15 @@
                     };
                     drawX(character.x + 25, character.y + 12);
                     drawX(character.x + 35, character.y + 10);
+                } else if (character.hitFlash > 0) {
+                    // Wincing pain — eyes squeezed shut on impact
+                    this.ctx.lineWidth = 2.5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(character.x + 25, character.y + 12, 3.5, Math.PI, 2 * Math.PI);
+                    this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.arc(character.x + 35, character.y + 10, 3.5, Math.PI, 2 * Math.PI);
+                    this.ctx.stroke();
                 } else if (character.health < 15) {
                     // Wide scared eyes — visible whites + tiny pupils
                     this.ctx.fillStyle = '#fff';
@@ -1324,6 +1333,14 @@
                         character.x + 32, character.y + 24 + Math.sin(t + 1) * 3,
                         character.x + 35, character.y + 20
                     );
+                    this.ctx.stroke();
+                } else if (character.hitFlash > 0) {
+                    // Big "OOF!" open oval — shocked pain mouth on impact
+                    this.ctx.lineWidth = 2;
+                    this.ctx.fillStyle = '#330000';
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(character.x + 30, character.y + 21, 6, 5, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
                     this.ctx.stroke();
                 } else if (character.health < 15) {
                     // Open O mouth — shocked
