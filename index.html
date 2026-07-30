@@ -585,7 +585,9 @@
                     speed: 3,
                     hitFlash: 0,
                     knockbackX: 0,
-                    knockbackY: 0
+                    knockbackY: 0,
+                    walkPhase: 0,
+                    isMoving: false
                 };
 
                 this.ai = {
@@ -603,7 +605,9 @@
                     confused: false,
                     knockbackX: 0,
                     knockbackY: 0,
-                    hitFlash: 0
+                    hitFlash: 0,
+                    walkPhase: 0,
+                    isMoving: false
                 };
 
                 this.projectiles = [];
@@ -730,6 +734,10 @@
                 this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.x + moveX));
                 this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y + moveY));
 
+                const isMovingNow = !!(this.keys['a'] || this.keys['d'] || this.keys['w'] || this.keys['s']);
+                this.player.isMoving = isMovingNow;
+                if (isMovingNow) this.player.walkPhase += 0.18;
+
                 if (moveX || moveY) {
                     this.sounds.playMove();
                 }
@@ -764,6 +772,7 @@
                 let moveX = 0, moveY = 0;
 
                 const distanceToPlayer = Math.sqrt((this.player.x - this.ai.x) ** 2 + (this.player.y - this.ai.y) ** 2);
+                const prevAiX = this.ai.x, prevAiY = this.ai.y;
 
                 if (distanceToPlayer < 200) {
                     moveX = this.ai.x > this.player.x ? aiSpeed : -aiSpeed;
@@ -786,6 +795,9 @@
 
                 this.ai.x = Math.max(0, Math.min(this.canvas.width - this.ai.width, this.ai.x + moveX));
                 this.ai.y = Math.max(0, Math.min(this.canvas.height - this.ai.height, this.ai.y + moveY));
+
+                this.ai.isMoving = Math.abs(this.ai.x - prevAiX) > 0.3 || Math.abs(this.ai.y - prevAiY) > 0.3;
+                if (this.ai.isMoving) this.ai.walkPhase += 0.18;
 
                 // Attack interval shrinks from 60-120 frames (easy) down to 20-30 frames (max)
                 const minInterval = Math.round(60 - diff * 40);
@@ -1396,20 +1408,38 @@
                     this.ctx.restore();
                 }
                 
-                // Arms - wavy lines
+                // Arms — swing opposite to legs during walk, gentle idle sway when still
+                const armSwing = (character.isMoving && !character.stunned)
+                    ? -Math.sin(character.walkPhase) * 8
+                    : Math.sin(Date.now() * 0.0015) * 2;
                 this.ctx.beginPath();
                 this.ctx.moveTo(character.x + 15, character.y + 35);
-                this.ctx.quadraticCurveTo(character.x + 5, character.y + 40, character.x + 8, character.y + 50);
+                this.ctx.quadraticCurveTo(
+                    character.x + 5, character.y + 40 + armSwing,
+                    character.x + 8, character.y + 50 + armSwing
+                );
                 this.ctx.moveTo(character.x + 45, character.y + 35);
-                this.ctx.quadraticCurveTo(character.x + 55, character.y + 40, character.x + 52, character.y + 50);
+                this.ctx.quadraticCurveTo(
+                    character.x + 55, character.y + 40 - armSwing,
+                    character.x + 52, character.y + 50 - armSwing
+                );
                 this.ctx.stroke();
-                
-                // Legs - uneven sticks
+
+                // Legs — alternating step cycle during movement
+                const legSwing = (character.isMoving && !character.stunned)
+                    ? Math.sin(character.walkPhase) * 10
+                    : 0;
+                const liftL = (character.isMoving && !character.stunned)
+                    ? Math.max(0, Math.sin(character.walkPhase)) * 6
+                    : 0;
+                const liftR = (character.isMoving && !character.stunned)
+                    ? Math.max(0, -Math.sin(character.walkPhase)) * 6
+                    : 0;
                 this.ctx.beginPath();
                 this.ctx.moveTo(character.x + 20, character.y + 65);
-                this.ctx.lineTo(character.x + 18, character.y + 80);
+                this.ctx.lineTo(character.x + 18 + legSwing, character.y + 80 - liftL);
                 this.ctx.moveTo(character.x + 40, character.y + 65);
-                this.ctx.lineTo(character.x + 42, character.y + 80);
+                this.ctx.lineTo(character.x + 42 - legSwing, character.y + 80 - liftR);
                 this.ctx.stroke();
 
                 // Stun stars — 3 golden stars orbiting above head when stunned
