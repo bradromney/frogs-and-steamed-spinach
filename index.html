@@ -993,6 +993,23 @@
                         this.sounds.playFrogBounce();
                     }
 
+                    // Frog bounces off left/right walls — up to 2 ricochets for pinball chaos
+                    if (p.type === 'frog' && (p.wallBounces || 0) < 2) {
+                        if (p.x <= 8 && p.vx < 0) {
+                            p.x = 8;
+                            p.vx = Math.abs(p.vx) * 0.72;
+                            p.wallBounces = (p.wallBounces || 0) + 1;
+                            this.spawnWallDustPuff(p.x, p.y, 1);
+                            this.sounds.playFrogBounce();
+                        } else if (p.x >= this.canvas.width - 8 && p.vx > 0) {
+                            p.x = this.canvas.width - 8;
+                            p.vx = -Math.abs(p.vx) * 0.72;
+                            p.wallBounces = (p.wallBounces || 0) + 1;
+                            this.spawnWallDustPuff(p.x, p.y, -1);
+                            this.sounds.playFrogBounce();
+                        }
+                    }
+
                     // Check for explosions
                     if (p.willExplode && p.life >= p.maxLife) {
                         this.createExplosion(p.x, p.y);
@@ -1151,6 +1168,26 @@
                         y,
                         vx: Math.cos(angle) * speed,
                         vy: Math.sin(angle) * speed - 0.5,
+                        life: 0,
+                        maxLife: 16 + Math.random() * 10,
+                        size: 1.5 + Math.random() * 2,
+                        color: dustColors[Math.floor(Math.random() * dustColors.length)]
+                    });
+                }
+            }
+
+            spawnWallDustPuff(x, y, dir) {
+                // dir: 1 = spray rightward (left wall bounce), -1 = spray leftward (right wall bounce)
+                const dustColors = ['#c8a96e', '#b8976a', '#d4b483', '#a0855c'];
+                const baseAngle = dir > 0 ? 0 : Math.PI;
+                for (let i = 0; i < 5; i++) {
+                    const angle = baseAngle + (Math.random() - 0.5) * Math.PI;
+                    const speed = 0.7 + Math.random() * 1.8;
+                    this.particles.push({
+                        x,
+                        y: y + (Math.random() - 0.5) * 14,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 0.3,
                         life: 0,
                         maxLife: 16 + Math.random() * 10,
                         size: 1.5 + Math.random() * 2,
