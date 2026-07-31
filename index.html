@@ -2059,6 +2059,47 @@
                     }
                 }
 
+                // Frog trajectory preview while charging with F held — simulates hop physics and wall bounces
+                if (this.charging && this.fKeyPressed) {
+                    const power = this.power / 100;
+                    const baseSpeed = 5 + power * 5;
+                    const startX = this.player.x + this.player.width / 2;
+                    const startY = this.player.y + this.player.height / 2;
+                    const dx = this.mouse.x - startX;
+                    const dy = this.mouse.y - startY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 0) {
+                        let px = startX, py = startY;
+                        let pvx = (dx / dist) * baseSpeed;
+                        let pvy = (dy / dist) * baseSpeed;
+                        let hopPhase = 0;
+                        let wallBounces = 0;
+                        this.ctx.save();
+                        this.ctx.fillStyle = '#90ee90';
+                        for (let step = 0; step < 120; step++) {
+                            hopPhase += 0.28;
+                            pvy += Math.sin(hopPhase) * 0.45;
+                            px += pvx;
+                            py += pvy;
+                            if (wallBounces < 2) {
+                                if (px <= 8 && pvx < 0) {
+                                    px = 8; pvx = Math.abs(pvx) * 0.72; wallBounces++;
+                                } else if (px >= this.canvas.width - 8 && pvx > 0) {
+                                    px = this.canvas.width - 8; pvx = -Math.abs(pvx) * 0.72; wallBounces++;
+                                }
+                            }
+                            if (py > this.canvas.height) break;
+                            if (step % 4 === 0) {
+                                this.ctx.globalAlpha = Math.max(0.08, 0.60 - (step / 120) * 0.52);
+                                this.ctx.beginPath();
+                                this.ctx.arc(px, py, 2 + (step / 120) * 2, 0, Math.PI * 2);
+                                this.ctx.fill();
+                            }
+                        }
+                        this.ctx.restore();
+                    }
+                }
+
                 // Draw crosshair (outside shake so it stays stable)
                 if (!this.charging) {
                     this.ctx.strokeStyle = this.fKeyPressed ? '#ff6b6b' : '#4ecdc4';
