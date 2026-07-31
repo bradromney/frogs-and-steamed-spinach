@@ -602,7 +602,8 @@
                     knockbackX: 0,
                     knockbackY: 0,
                     walkPhase: 0,
-                    isMoving: false
+                    isMoving: false,
+                    facing: 1
                 };
 
                 this.ai = {
@@ -622,7 +623,8 @@
                     knockbackY: 0,
                     hitFlash: 0,
                     walkPhase: 0,
-                    isMoving: false
+                    isMoving: false,
+                    facing: -1
                 };
 
                 this.projectiles = [];
@@ -1331,6 +1333,15 @@
                     this.ctx.translate(-ssCX, -ssCY);
                 }
 
+                // Mirror character horizontally so they always face their opponent
+                const facing = character.facing !== undefined ? character.facing : 1;
+                if (facing === -1) {
+                    const flipCX = character.x + character.width / 2;
+                    this.ctx.translate(flipCX, 0);
+                    this.ctx.scale(-1, 1);
+                    this.ctx.translate(-flipCX, 0);
+                }
+
                 // Terrible toddler art
                 this.ctx.strokeStyle = '#000';
                 this.ctx.lineWidth = 3;
@@ -1759,6 +1770,8 @@
                     this.updatePlayer();
                     this.updateAI();
                     this.updateProjectiles();
+                    this.player.facing = (this.ai.x >= this.player.x) ? 1 : -1;
+                    this.ai.facing = (this.player.x > this.ai.x) ? 1 : -1;
                 }
                 
                 // Update splats
