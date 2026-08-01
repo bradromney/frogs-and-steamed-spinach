@@ -504,6 +504,11 @@
                 osc.stop(this.context.currentTime + 0.17);
             }
 
+            playKOThud() {
+                this.createSound(58, 0.45, 'sawtooth', 0.28);
+                setTimeout(() => this.createSound(38, 0.35, 'square', 0.18), 55);
+            }
+
             startBackgroundMusic() {
                 if (!this.context || this.bgMusicPlaying) return;
                 this.bgMusicPlaying = true;
@@ -646,6 +651,9 @@
                 this.tookDamage = false;
                 this.perfectTimer = 0;
                 this.killFlashTimer = 0;
+                this.koCharacter = null;
+                this.koAngle = 0;
+                this.koDustSpawned = false;
                 this.chargeFrame = 0;
                 this.roundIntro = { active: true, timer: 0 };
                 this.musicStarted = false;
@@ -1333,6 +1341,17 @@
                     this.ctx.translate(-ssCX, -ssCY);
                 }
 
+                // KO fall — rotate the defeated character around their feet toward the ground.
+                // Inserted before the facing flip so the flip mirrors the angle direction,
+                // causing both characters to topple *backward* (away from their opponent).
+                if (character === this.koCharacter && this.koAngle > 0) {
+                    const pivotX = character.x + character.width / 2;
+                    const pivotY = character.y + character.height;
+                    this.ctx.translate(pivotX, pivotY);
+                    this.ctx.rotate(-this.koAngle);
+                    this.ctx.translate(-pivotX, -pivotY);
+                }
+
                 // Mirror character horizontally so they always face their opponent
                 const facing = character.facing !== undefined ? character.facing : 1;
                 if (facing === -1) {
@@ -1833,6 +1852,33 @@
                 if (this.koTextTimer > 0) this.koTextTimer--;
                 if (this.newHiScoreFlashTimer > 0) this.newHiScoreFlashTimer--;
 
+                // KO fall animation — tip the defeated character from vertical to flat on the ground
+                if (this.koCharacter && this.koAngle < Math.PI / 2) {
+                    this.koAngle = Math.min(Math.PI / 2, this.koAngle + 0.07);
+                    if (!this.koDustSpawned && this.koAngle >= Math.PI / 2) {
+                        this.koDustSpawned = true;
+                        const px = this.koCharacter.x + this.koCharacter.width / 2;
+                        const py = this.koCharacter.y + this.koCharacter.height;
+                        const dustColors = ['#c8a96e', '#b8976a', '#d4b483'];
+                        for (let i = 0; i < 14; i++) {
+                            const a = -Math.PI + Math.random() * Math.PI;
+                            const spd = 0.8 + Math.random() * 2.5;
+                            this.particles.push({
+                                x: px + (Math.random() - 0.5) * 40,
+                                y: py,
+                                vx: Math.cos(a) * spd,
+                                vy: Math.sin(a) * spd - 0.8,
+                                life: 0,
+                                maxLife: 22 + Math.random() * 16,
+                                size: 1.8 + Math.random() * 2.5,
+                                color: dustColors[Math.floor(Math.random() * dustColors.length)]
+                            });
+                        }
+                        this.triggerScreenShake(3, 5);
+                        this.sounds.playKOThud();
+                    }
+                }
+
                 // Low-health heartbeat pulse — beats faster when critically low
                 if (this.player.health > 0 && this.player.health < 30) {
                     const beatRate = this.player.health < 15 ? 28 : 48;
@@ -2264,6 +2310,9 @@
                     this.koTextTimer = 44;
                     this.koWinner = 'player';
                     this.killFlashTimer = 12;
+                    this.koCharacter = this.ai;
+                    this.koAngle = 0;
+                    this.koDustSpawned = false;
                     this.spawnConfetti(this.ai.x + this.ai.width / 2, this.ai.y + this.ai.height / 2);
 
                     if (isNewRecord && this.bestStreak > 1) {
@@ -2300,6 +2349,9 @@
                     this.celebrating = true;
                     this.koTextTimer = 30;
                     this.koWinner = 'ai';
+                    this.koCharacter = this.player;
+                    this.koAngle = 0;
+                    this.koDustSpawned = false;
                     this.sounds.playHurl();
                     setTimeout(() => {
                         this.celebrating = false;
