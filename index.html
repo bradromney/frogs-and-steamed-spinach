@@ -1663,24 +1663,33 @@
                     this.ctx.translate(projectile.x, projectile.y);
                     this.ctx.rotate(angle);
 
-                    // Hind legs trailing behind the body
+                    // Animated hind legs — kick cycle tied to hopPhase (same sine as hop physics)
+                    // legOpen=1 when frog is kicking upward, 0 when it's on the downswing
+                    const legSin = Math.sin(projectile.hopPhase);
+                    const legOpen = (-legSin + 1) * 0.5;
+                    const kneeX = -10 - legOpen * 5;
+                    const kneeSpread = 4 + legOpen * 5;
+                    const footX = -13 - legOpen * 3;
+                    const footSpread = 1.5 + legOpen * 1.5;
                     this.ctx.strokeStyle = '#000';
                     this.ctx.lineWidth = 1.5;
                     this.ctx.beginPath();
-                    this.ctx.moveTo(-7, 0);
-                    this.ctx.lineTo(-13, -7);
-                    this.ctx.lineTo(-16, -2);
-                    this.ctx.moveTo(-7, 0);
-                    this.ctx.lineTo(-13, 7);
-                    this.ctx.lineTo(-16, 2);
+                    this.ctx.moveTo(-6, -1);
+                    this.ctx.lineTo(kneeX, -kneeSpread);
+                    this.ctx.lineTo(footX, -footSpread);
+                    this.ctx.moveTo(-6, 1);
+                    this.ctx.lineTo(kneeX, kneeSpread);
+                    this.ctx.lineTo(footX, footSpread);
                     this.ctx.stroke();
 
-                    // Body - lopsided oval
+                    // Body — squash & stretch reinforces the kick (stretches forward on push)
+                    const bodyRx = 9 + legOpen * 1.5;
+                    const bodyRy = 6 - legOpen * 0.8;
                     this.ctx.fillStyle = '#90ee90';
                     this.ctx.strokeStyle = '#000';
                     this.ctx.lineWidth = 2;
                     this.ctx.beginPath();
-                    this.ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2);
+                    this.ctx.ellipse(0, 0, bodyRx, bodyRy, 0, 0, Math.PI * 2);
                     this.ctx.fill();
                     this.ctx.stroke();
 
