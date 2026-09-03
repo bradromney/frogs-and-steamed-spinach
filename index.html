@@ -424,6 +424,13 @@
                 setTimeout(() => this.createSound(56, 0.12, 'sine', 0.15), 100);
             }
 
+            playStenchWarn(stench) {
+                // Low nauseating gurgle — pitch sinks and volume rises as stench approaches 10
+                const freq = Math.max(48, 130 - (stench - 5) * 16);
+                this.createSound(freq, 0.38, 'sawtooth', 0.07 + (stench - 5) * 0.01);
+                setTimeout(() => this.createSound(freq * 0.72, 0.26, 'square', 0.045), 170);
+            }
+
             playChargeRumble(power) {
                 const freq = 55 + (power / 100) * 160;
                 this.createSound(freq, 0.09, 'sawtooth', 0.025);
@@ -647,6 +654,7 @@
                 this.playerCombo = 0;
                 this.bestCombo = 0;
                 this.lowHealthPulse = 0;
+                this.stenchPulse = 0;
                 this.celebrating = false;
                 this.tookDamage = false;
                 this.perfectTimer = 0;
@@ -1292,7 +1300,10 @@
                     playerHealthFill.classList.remove('critical');
                 }
                 document.getElementById('aiHealth').style.width = Math.max(0, this.ai.health) + '%';
-                document.getElementById('playerStench').textContent = this.player.stench;
+                const psEl = document.getElementById('playerStench');
+                psEl.textContent = this.player.stench;
+                psEl.style.color = this.player.stench >= 9 ? '#e74c3c' : this.player.stench >= 7 ? '#e67e22' : this.player.stench >= 5 ? '#f1c40f' : '';
+                psEl.style.fontWeight = this.player.stench >= 7 ? 'bold' : '';
                 document.getElementById('aiStench').textContent = this.ai.stench;
             }
 
@@ -1922,6 +1933,15 @@
                 } else {
                     this.lowHealthPulse = 0;
                 }
+
+                // Stench urgency pulse — green warning builds as stench climbs toward 10
+                if (this.player.stench >= 5) {
+                    const stenchRate = this.player.stench >= 9 ? 20 : this.player.stench >= 7 ? 32 : 50;
+                    this.stenchPulse = (this.stenchPulse + 1) % stenchRate;
+                    if (this.stenchPulse === 0) this.sounds.playStenchWarn(this.player.stench);
+                } else {
+                    this.stenchPulse = 0;
+                }
             }
 
             draw() {
@@ -2098,6 +2118,22 @@
                         const grad = this.ctx.createRadialGradient(cx, cy, this.canvas.height * 0.18, cx, cy, this.canvas.height * 0.88);
                         grad.addColorStop(0, 'rgba(180, 0, 0, 0)');
                         grad.addColorStop(1, `rgba(180, 0, 0, ${alpha})`);
+                        this.ctx.fillStyle = grad;
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    }
+                }
+
+                // Stench urgency vignette — green pulsing fog intensifies as stench climbs toward 10
+                if (this.player.stench >= 5) {
+                    const stenchRate = this.player.stench >= 9 ? 20 : this.player.stench >= 7 ? 32 : 50;
+                    const phase = this.stenchPulse / stenchRate;
+                    const baseAlpha = ((this.player.stench - 4) / 6) * 0.20;
+                    const pulseAlpha = baseAlpha + Math.pow(Math.sin(phase * Math.PI), 2) * 0.16;
+                    if (pulseAlpha > 0.008) {
+                        const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                        const grad = this.ctx.createRadialGradient(cx, cy, this.canvas.height * 0.22, cx, cy, this.canvas.height * 0.96);
+                        grad.addColorStop(0, 'rgba(0, 120, 0, 0)');
+                        grad.addColorStop(1, `rgba(30, 170, 30, ${pulseAlpha})`);
                         this.ctx.fillStyle = grad;
                         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                     }
