@@ -464,6 +464,13 @@
                 }
             }
 
+            playComboBreak() {
+                // Descending sad "wah-wah" drop — combo lost
+                [330, 261, 196, 147].forEach((freq, i) => {
+                    setTimeout(() => this.createSound(freq, 0.28, 'sawtooth', 0.09), i * 90);
+                });
+            }
+
             playRoundStart() {
                 // Three-note ascending "GET READY" arpeggio
                 [196, 247, 294].forEach((freq, i) => {
@@ -1261,6 +1268,10 @@
                         this.sounds.playComboSound(this.playerCombo);
                     }
                 } else {
+                    if (this.playerCombo >= 2) {
+                        this.floatingNumbers.push({ x: this.canvas.width / 2, y: this.canvas.height * 0.32, value: `x${this.playerCombo} COMBO BREAK!`, life: 0, maxLife: 80, comboBreak: true });
+                        this.sounds.playComboBreak();
+                    }
                     this.playerCombo = 0;
                 }
             }
@@ -1883,7 +1894,7 @@
 
                 // Update floating numbers
                 for (let i = this.floatingNumbers.length - 1; i >= 0; i--) {
-                    this.floatingNumbers[i].y -= this.floatingNumbers[i].combo ? 0.6 : 1.5;
+                    this.floatingNumbers[i].y -= this.floatingNumbers[i].combo ? 0.6 : this.floatingNumbers[i].comboBreak ? -0.5 : 1.5;
                     this.floatingNumbers[i].life++;
                     if (this.floatingNumbers[i].life >= this.floatingNumbers[i].maxLife) {
                         this.floatingNumbers.splice(i, 1);
@@ -2033,6 +2044,11 @@
                         const bounce = 1.45 + Math.sin(n.life * 0.28) * 0.12;
                         this.ctx.font = `bold ${Math.round(32 * bounce)}px monospace`;
                         this.ctx.fillStyle = comboColors[(n.combo - 2) % comboColors.length];
+                        this.ctx.lineWidth = 4;
+                    } else if (n.comboBreak) {
+                        const scale = 1.3 + (1 - n.life / n.maxLife) * 0.25;
+                        this.ctx.font = `bold ${Math.round(26 * scale)}px monospace`;
+                        this.ctx.fillStyle = '#ff4444';
                         this.ctx.lineWidth = 4;
                     } else {
                         const scale = 1 + (1 - n.life / n.maxLife) * 0.4;
