@@ -6,7 +6,7 @@
     <title>Strategic Frog & Spinach Chaos Arena</title>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Press+Start+2P&display=swap');
         
         body {
             margin: 0;
@@ -2078,17 +2078,17 @@
                     if (n.combo) {
                         const comboColors = ['#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff','#5f27cd','#ff9f43'];
                         const bounce = 1.45 + Math.sin(n.life * 0.28) * 0.12;
-                        this.ctx.font = `bold ${Math.round(32 * bounce)}px monospace`;
+                        this.ctx.font = `${Math.round(18 * bounce)}px 'Press Start 2P', monospace`;
                         this.ctx.fillStyle = comboColors[(n.combo - 2) % comboColors.length];
                         this.ctx.lineWidth = 4;
                     } else if (n.comboBreak) {
                         const scale = 1.3 + (1 - n.life / n.maxLife) * 0.25;
-                        this.ctx.font = `bold ${Math.round(26 * scale)}px monospace`;
+                        this.ctx.font = `${Math.round(15 * scale)}px 'Press Start 2P', monospace`;
                         this.ctx.fillStyle = '#ff4444';
                         this.ctx.lineWidth = 4;
                     } else {
                         const scale = 1 + (1 - n.life / n.maxLife) * 0.4;
-                        this.ctx.font = `bold ${Math.round(20 * scale)}px monospace`;
+                        this.ctx.font = `${Math.round(12 * scale)}px 'Press Start 2P', monospace`;
                         this.ctx.fillStyle = typeof n.value === 'string' ? '#ffd700' : '#ff3333';
                         this.ctx.lineWidth = 3;
                     }
@@ -2118,7 +2118,7 @@
                     this.ctx.globalAlpha = pFade;
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
-                    this.ctx.font = `bold ${Math.round(72 * pBounce)}px monospace`;
+                    this.ctx.font = `${Math.round(38 * pBounce)}px 'Press Start 2P', monospace`;
                     this.ctx.lineWidth = 11;
                     this.ctx.strokeStyle = '#5f27cd';
                     this.ctx.strokeText('PERFECT!', this.canvas.width / 2, this.canvas.height * 0.4);
@@ -2139,13 +2139,13 @@
                     this.ctx.globalAlpha = alpha * 0.88;
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
-                    const fontSize = Math.round(64 * overshoot * shimmer);
-                    this.ctx.font = `bold ${fontSize}px monospace`;
+                    const fontSize = Math.round(32 * overshoot * shimmer);
+                    this.ctx.font = `${fontSize}px 'Press Start 2P', monospace`;
                     this.ctx.lineWidth = 11;
                     this.ctx.strokeStyle = '#5f27cd';
-                    this.ctx.strokeText('★ NEW RECORD! ★', this.canvas.width / 2, this.canvas.height * 0.3);
+                    this.ctx.strokeText('* NEW RECORD! *', this.canvas.width / 2, this.canvas.height * 0.3);
                     this.ctx.fillStyle = '#ffd700';
-                    this.ctx.fillText('★ NEW RECORD! ★', this.canvas.width / 2, this.canvas.height * 0.3);
+                    this.ctx.fillText('* NEW RECORD! *', this.canvas.width / 2, this.canvas.height * 0.3);
                     this.ctx.restore();
                 }
 
@@ -2197,7 +2197,7 @@
                     const pulse = 1 + Math.sin(Date.now() * 0.012) * 0.06;
                     this.ctx.save();
                     this.ctx.textAlign = 'center';
-                    this.ctx.font = `bold ${Math.round(17 * pulse)}px monospace`;
+                    this.ctx.font = `${Math.round(10 * pulse)}px 'Press Start 2P', monospace`;
                     this.ctx.fillStyle = comboColors[(this.playerCombo - 2) % comboColors.length];
                     this.ctx.strokeStyle = '#000';
                     this.ctx.lineWidth = 3;
@@ -2306,7 +2306,7 @@
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
                     this.ctx.globalAlpha = alpha;
-                    this.ctx.font = `bold ${Math.round(110 * overshoot)}px monospace`;
+                    this.ctx.font = `${Math.round(54 * overshoot)}px 'Press Start 2P', monospace`;
                     this.ctx.lineWidth = 14;
                     this.ctx.strokeStyle = '#000';
                     this.ctx.strokeText(text, this.canvas.width / 2, this.canvas.height / 2);
@@ -2338,7 +2338,7 @@
                     const offsetY = Math.max(0, (1 - t / 10)) * -60;
                     this.ctx.globalAlpha = textAlpha;
                     const scale = 0.8 + 0.2 * Math.min(1, t / 10);
-                    this.ctx.font = `bold ${Math.round(54 * scale)}px monospace`;
+                    this.ctx.font = `${Math.round(28 * scale)}px 'Press Start 2P', monospace`;
                     this.ctx.lineWidth = 8;
                     this.ctx.strokeStyle = '#000';
                     this.ctx.strokeText('GET READY!', cx, cy + offsetY);
@@ -2353,7 +2353,7 @@
                         const lvlColor = lvl >= 7 ? '#ff4455' : lvl >= 4 ? '#ff9f43' : '#ffd700';
                         const pulse = 1 + Math.sin(t * 0.32) * 0.055;
                         this.ctx.globalAlpha = lvlFade;
-                        this.ctx.font = `bold ${Math.round(30 * scale * pulse)}px monospace`;
+                        this.ctx.font = `${Math.round(16 * scale * pulse)}px 'Press Start 2P', monospace`;
                         this.ctx.lineWidth = 5;
                         this.ctx.strokeStyle = '#000';
                         const lvlText = `ENEMY LVL ${lvl}`;
@@ -2377,7 +2377,7 @@
                     const alpha = Math.min(1, fightT / 5);
                     const overshoot = fightT < 7 ? 1 + (1 - fightT / 7) * 0.55 : 1.0;
                     this.ctx.globalAlpha = alpha;
-                    this.ctx.font = `bold ${Math.round(88 * overshoot)}px monospace`;
+                    this.ctx.font = `${Math.round(44 * overshoot)}px 'Press Start 2P', monospace`;
                     this.ctx.lineWidth = 11;
                     this.ctx.strokeStyle = '#000';
                     this.ctx.strokeText('FIGHT!', cx, cy);
