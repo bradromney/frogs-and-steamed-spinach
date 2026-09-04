@@ -56,6 +56,17 @@
             border-radius: 10px;
             margin: 5px 0;
             overflow: hidden;
+            position: relative;
+        }
+
+        .health-ghost {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #ffd32a;
+            border-radius: 8px;
+            z-index: 0;
         }
 
         .health-fill {
@@ -63,6 +74,8 @@
             background: linear-gradient(90deg, #4ecdc4, #45b7aa);
             transition: width 0.5s ease;
             border-radius: 8px;
+            position: relative;
+            z-index: 1;
         }
 
         .instability-bar {
@@ -299,6 +312,7 @@
             <div class="player-info">
                 <div>YOU</div>
                 <div class="health-bar">
+                    <div class="health-ghost" id="playerHealthGhost" style="width: 100%"></div>
                     <div class="health-fill" id="playerHealth" style="width: 100%"></div>
                 </div>
                 <div>Stench: <span id="playerStench">0</span></div>
@@ -320,6 +334,7 @@
             <div class="player-info right">
                 <div>COMPUTER</div>
                 <div class="health-bar">
+                    <div class="health-ghost" id="aiHealthGhost" style="width: 100%"></div>
                     <div class="health-fill" id="aiHealth" style="width: 100%"></div>
                 </div>
                 <div>Stench: <span id="aiStench">0</span></div>
@@ -651,6 +666,10 @@
                 this.particles = [];
                 this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
                 this.floatingNumbers = [];
+                this.playerGhostHealth = 100;
+                this.aiGhostHealth = 100;
+                this.playerGhostDelay = 0;
+                this.aiGhostDelay = 0;
                 this.gameRunning = true;
                 this.hitStopFrames = 0;
                 this.koTextTimer = 0;
@@ -1136,7 +1155,8 @@
                         const spinKbSpeed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy) || 1;
                         target.knockbackX = (projectile.vx / spinKbSpeed) * 26;
                         target.knockbackY = (projectile.vy / spinKbSpeed) * 26;
-                        if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 40); this.tookDamage = true; }
+                        if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 40); this.tookDamage = true; this.playerGhostDelay = 35; }
+                        else { this.aiGhostDelay = 35; }
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
 
                         this.createSplat(projectile.x, projectile.y, 'spinach');
@@ -1908,6 +1928,22 @@
                 if (this.perfectTimer > 0) this.perfectTimer--;
                 if (this.koTextTimer > 0) this.koTextTimer--;
                 if (this.newHiScoreFlashTimer > 0) this.newHiScoreFlashTimer--;
+
+                // Ghost health bars — hold briefly after a hit, then drain toward real health
+                if (this.playerGhostDelay > 0) {
+                    this.playerGhostDelay--;
+                } else if (this.playerGhostHealth > this.player.health) {
+                    this.playerGhostHealth = Math.max(this.player.health, this.playerGhostHealth - 0.6);
+                    const ghEl = document.getElementById('playerHealthGhost');
+                    if (ghEl) ghEl.style.width = Math.max(0, this.playerGhostHealth) + '%';
+                }
+                if (this.aiGhostDelay > 0) {
+                    this.aiGhostDelay--;
+                } else if (this.aiGhostHealth > this.ai.health) {
+                    this.aiGhostHealth = Math.max(this.ai.health, this.aiGhostHealth - 0.6);
+                    const ghEl = document.getElementById('aiHealthGhost');
+                    if (ghEl) ghEl.style.width = Math.max(0, this.aiGhostHealth) + '%';
+                }
 
                 // KO fall animation — tip the defeated character from vertical to flat on the ground
                 if (this.koCharacter && this.koAngle < Math.PI / 2) {
