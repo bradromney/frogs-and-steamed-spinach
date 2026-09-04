@@ -538,6 +538,12 @@
                 setTimeout(() => this.createSound(38, 0.35, 'square', 0.18), 55);
             }
 
+            playAIAlert() {
+                // Two ascending square-wave blips — classic retro "!" alert
+                this.createSound(880, 0.07, 'square', 0.12);
+                setTimeout(() => this.createSound(1047, 0.06, 'square', 0.10), 75);
+            }
+
             startBackgroundMusic() {
                 if (!this.context || this.bgMusicPlaying) return;
                 this.bgMusicPlaying = true;
@@ -658,7 +664,8 @@
                     hitFlash: 0,
                     walkPhase: 0,
                     isMoving: false,
-                    facing: -1
+                    facing: -1,
+                    alerted: false
                 };
 
                 this.projectiles = [];
@@ -887,8 +894,18 @@
                 // Attack interval shrinks from 60-120 frames (easy) down to 20-30 frames (max)
                 const minInterval = Math.round(60 - diff * 40);
                 const randRange = Math.round(60 - diff * 50);
+
+                // Telegraph "!" — fires once per attack cycle at ~72% of min threshold.
+                // At easy difficulty this gives ~17+ frames of warning; at max difficulty ~6.
+                const alertThreshold = Math.round(minInterval * 0.72);
+                if (this.ai.nextAction >= alertThreshold && !this.ai.alerted) {
+                    this.ai.alerted = true;
+                    this.sounds.playAIAlert();
+                }
+
                 if (this.ai.nextAction > minInterval + Math.random() * Math.max(randRange, 10)) {
                     this.ai.nextAction = 0;
+                    this.ai.alerted = false;
                     // Frog usage rises from 30% to 50% at max difficulty (frogs stun, more disruptive)
                     const frogChance = 0.3 + diff * 0.2;
                     if (Math.random() < frogChance) {
@@ -2064,7 +2081,27 @@
                 // Draw characters
                 this.drawCharacter(this.player, true);
                 this.drawCharacter(this.ai, false);
-                
+
+                // AI attack telegraph — bouncing pixel "!" above enemy head signals incoming attack.
+                // Visible only while alerted and not stunned/confused; scales with difficulty (less
+                // warning time at higher levels so it stays challenging).
+                if (this.ai.alerted && !this.ai.stunned && !this.ai.confused && this.gameRunning && !this.roundIntro.active) {
+                    const exX = this.ai.x + this.ai.width / 2;
+                    const bob = Math.abs(Math.sin(Date.now() * 0.012)) * 5;
+                    const exY = this.ai.y - 22 - bob;
+                    const pulse = 1 + Math.sin(Date.now() * 0.025) * 0.13;
+                    this.ctx.save();
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.font = `${Math.round(22 * pulse)}px 'Press Start 2P', monospace`;
+                    this.ctx.strokeStyle = '#000';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.strokeText('!', exX, exY);
+                    this.ctx.fillStyle = '#ff2244';
+                    this.ctx.fillText('!', exX, exY);
+                    this.ctx.restore();
+                }
+
                 // Draw projectiles
                 this.projectiles.forEach(projectile => this.drawProjectile(projectile));
                 
