@@ -744,7 +744,6 @@
                     this.mouse.down = true;
                     this.charging = true;
                     this.power = 0;
-                    document.getElementById('powerMeter').style.display = 'block';
                     
                     const rect = this.canvas.getBoundingClientRect();
                     this.mouse.x = e.clientX - rect.left;
@@ -756,7 +755,6 @@
                     
                     this.mouse.down = false;
                     this.charging = false;
-                    document.getElementById('powerMeter').style.display = 'none';
                     
                     const rect = this.canvas.getBoundingClientRect();
                     const targetX = e.clientX - rect.left;
@@ -2093,6 +2091,41 @@
                 // Draw characters
                 this.drawCharacter(this.player, true);
                 this.drawCharacter(this.ai, false);
+
+                // Circular charge ring — arcs clockwise around player as power fills, replaces center-screen bar
+                if (this.charging && this.power > 0) {
+                    const power = this.power / 100;
+                    const cx = this.player.x + this.player.width / 2;
+                    const cy = this.player.y + this.player.height / 2;
+                    const radius = 46;
+                    const rgb = this.fKeyPressed ? '100, 210, 80' : '60, 210, 210';
+                    this.ctx.save();
+                    this.ctx.lineCap = 'round';
+                    // Faint ghost track
+                    this.ctx.strokeStyle = `rgba(${rgb}, 0.20)`;
+                    this.ctx.lineWidth = 5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    // Bright filled arc (starts at top, sweeps clockwise with power)
+                    const startAngle = -Math.PI / 2;
+                    const endAngle = startAngle + Math.PI * 2 * power;
+                    this.ctx.strokeStyle = `rgba(${rgb}, ${(0.7 + power * 0.3).toFixed(2)})`;
+                    this.ctx.lineWidth = 5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, radius, startAngle, endAngle);
+                    this.ctx.stroke();
+                    // Bright dot at the leading edge
+                    if (power > 0.03) {
+                        const tipX = cx + Math.cos(endAngle) * radius;
+                        const tipY = cy + Math.sin(endAngle) * radius;
+                        this.ctx.fillStyle = `rgba(255, 255, 255, ${(0.7 + power * 0.3).toFixed(2)})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(tipX, tipY, 3.5, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                }
 
                 // AI attack telegraph — bouncing pixel "!" above enemy head signals incoming attack.
                 // Visible only while alerted and not stunned/confused; scales with difficulty (less
