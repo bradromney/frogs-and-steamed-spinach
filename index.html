@@ -695,6 +695,7 @@
                 this.tookDamage = false;
                 this.perfectTimer = 0;
                 this.killFlashTimer = 0;
+                this.hitImpactFlash = 0;
                 this.koCharacter = null;
                 this.koAngle = 0;
                 this.koDustSpawned = false;
@@ -1194,6 +1195,7 @@
                         target.knockbackY = (projectile.vy / frogKbSpeed) * 16;
                         if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 25); this.tookDamage = true; }
                         this.hitStopFrames = Math.max(this.hitStopFrames, 3);
+                        this.hitImpactFlash = Math.max(this.hitImpactFlash, 4);
                         this.triggerScreenShake(4, 8);
                         this.spawnImpactParticles(projectile.x, projectile.y, 'frog');
                         this.spawnRipple(projectile.x, projectile.y, 'frog');
@@ -1234,6 +1236,7 @@
                         if (target === this.player) { this.playerHurtFrames = Math.max(this.playerHurtFrames, 40); this.tookDamage = true; this.playerGhostDelay = 35; }
                         else { this.aiGhostDelay = 35; }
                         this.hitStopFrames = Math.max(this.hitStopFrames, 5);
+                        this.hitImpactFlash = Math.max(this.hitImpactFlash, 6);
 
                         this.createSplat(projectile.x, projectile.y, 'spinach');
                         this.spawnImpactParticles(projectile.x, projectile.y, 'spinach');
@@ -2036,6 +2039,7 @@
                 if (this.perfectTimer > 0) this.perfectTimer--;
                 if (this.koTextTimer > 0) this.koTextTimer--;
                 if (this.newHiScoreFlashTimer > 0) this.newHiScoreFlashTimer--;
+                if (this.hitImpactFlash > 0) this.hitImpactFlash--;
 
                 // Ghost health bars — hold briefly after a hit, then drain toward real health
                 if (this.playerGhostDelay > 0) {
@@ -2277,6 +2281,15 @@
                 });
 
                 this.ctx.restore(); // end screen shake translate
+
+                // Hit impact flash — brief white bloom every time a projectile lands
+                if (this.hitImpactFlash > 0) {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = (this.hitImpactFlash / 6) * 0.45;
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.restore();
+                }
 
                 // Kill flash — brief white screen bloom on the killing blow
                 if (this.killFlashTimer > 0) {
