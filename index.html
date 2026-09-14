@@ -2345,6 +2345,21 @@
                     }
                 }
 
+                // Finishing-blow vignette — golden edge pulse when AI is nearly defeated (mirrors player low-health red vignette)
+                if (this.ai.health > 0 && this.ai.health < 20 && this.gameRunning) {
+                    const pulse = Date.now() * (this.ai.health < 10 ? 0.007 : 0.004);
+                    const baseAlpha = ((20 - this.ai.health) / 20) * 0.18;
+                    const pulseAlpha = baseAlpha + Math.pow(Math.sin(pulse), 2) * 0.14;
+                    if (pulseAlpha > 0.01) {
+                        const cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+                        const grad = this.ctx.createRadialGradient(cx, cy, this.canvas.height * 0.22, cx, cy, this.canvas.height * 0.95);
+                        grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                        grad.addColorStop(1, `rgba(255, 200, 0, ${pulseAlpha.toFixed(3)})`);
+                        this.ctx.fillStyle = grad;
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    }
+                }
+
                 // Persistent combo badge (below DOM HUD, above crosshair)
                 if (this.playerCombo >= 2) {
                     const comboColors = ['#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff','#5f27cd','#ff9f43'];
