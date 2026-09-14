@@ -640,6 +640,7 @@
                     stunned: false,
                     speed: 3,
                     hitFlash: 0,
+                    launchSquash: 0,
                     knockbackX: 0,
                     knockbackY: 0,
                     walkPhase: 0,
@@ -954,7 +955,21 @@
 
                 this.sounds.playFrogCroak();
                 this.power = 0;
-                
+
+                // Launch recoil — squash + backward muzzle burst opposite to throw direction
+                if (distance > 0) {
+                    this.player.launchSquash = 7;
+                    const cx = this.player.x + this.player.width / 2;
+                    const cy = this.player.y + this.player.height / 2;
+                    const recoilColors = ['#c8ff6a', '#90ee90', '#ffffff'];
+                    for (let i = 0; i < 5; i++) {
+                        const spread = (Math.random() - 0.5) * 1.4;
+                        const dir = Math.atan2(-dy, -dx) + spread;
+                        const spd = 1.8 + Math.random() * 2.4;
+                        this.particles.push({ x: cx, y: cy, vx: Math.cos(dir) * spd, vy: Math.sin(dir) * spd, life: 0, maxLife: 10 + Math.random() * 8, size: 2 + Math.random() * 2, color: recoilColors[Math.floor(Math.random() * recoilColors.length)] });
+                    }
+                }
+
                 // Track projectile
                 if (window.gameAnalytics) {
                     window.gameAnalytics.trackProjectile('frog');
@@ -989,7 +1004,21 @@
                 });
 
                 this.power = 0;
-                
+
+                // Launch recoil — squash + backward muzzle burst opposite to throw direction
+                if (distance > 0) {
+                    this.player.launchSquash = 7;
+                    const cx = this.player.x + this.player.width / 2;
+                    const cy = this.player.y + this.player.height / 2;
+                    const recoilColors = ['#48dbfb', '#81ecec', '#ffffff'];
+                    for (let i = 0; i < 5; i++) {
+                        const spread = (Math.random() - 0.5) * 1.4;
+                        const dir = Math.atan2(-dy, -dx) + spread;
+                        const spd = 1.8 + Math.random() * 2.4;
+                        this.particles.push({ x: cx, y: cy, vx: Math.cos(dir) * spd, vy: Math.sin(dir) * spd, life: 0, maxLife: 10 + Math.random() * 8, size: 2 + Math.random() * 2, color: recoilColors[Math.floor(Math.random() * recoilColors.length)] });
+                    }
+                }
+
                 // Track projectile
                 if (window.gameAnalytics) {
                     window.gameAnalytics.trackProjectile('spinach');
@@ -1439,6 +1468,10 @@
                 if (character.hitFlash > 0) {
                     const t = character.hitFlash / 10;
                     ssX = 1 + t * 0.32;
+                    ssY = 1 - t * 0.22;
+                } else if (isPlayer && this.player.launchSquash > 0) {
+                    const t = this.player.launchSquash / 7;
+                    ssX = 1 + t * 0.30;
                     ssY = 1 - t * 0.22;
                 } else if (isPlayer && this.charging && this.power > 5) {
                     const p = this.power / 100;
@@ -1971,9 +2004,10 @@
                     }
                 }
 
-                // Decay hit flash
+                // Decay hit flash and launch squash
                 if (this.player.hitFlash > 0) this.player.hitFlash--;
                 if (this.ai.hitFlash > 0) this.ai.hitFlash--;
+                if (this.player.launchSquash > 0) this.player.launchSquash--;
                 if (this.playerHurtFrames > 0) this.playerHurtFrames--;
                 if (this.perfectTimer > 0) this.perfectTimer--;
                 if (this.koTextTimer > 0) this.koTextTimer--;
