@@ -805,6 +805,18 @@
                 this.player.isMoving = isMovingNow;
                 if (isMovingNow) this.player.walkPhase += 0.18;
 
+                // Footstep dust — one puff per step impact (walkPhase crossing a multiple of π)
+                if (isMovingNow && !this.player.stunned) {
+                    const prevPhase = this.player.walkPhase - 0.18;
+                    if (Math.floor(this.player.walkPhase / Math.PI) > Math.floor(prevPhase / Math.PI)) {
+                        const fx = this.player.x + this.player.width * (0.25 + Math.random() * 0.5);
+                        const fy = this.player.y + this.player.height - 4;
+                        for (let i = 0; i < 2; i++) {
+                            this.particles.push({ x: fx + (Math.random() - 0.5) * 12, y: fy, vx: (Math.random() - 0.5) * 1.2, vy: -0.5 - Math.random() * 0.8, life: 0, maxLife: 14 + Math.random() * 8, size: 1.5 + Math.random() * 2, color: '#c8a96e' });
+                        }
+                    }
+                }
+
                 if (moveX || moveY) {
                     this.sounds.playMove();
                 }
@@ -896,6 +908,18 @@
 
                 this.ai.isMoving = Math.abs(this.ai.x - prevAiX) > 0.3 || Math.abs(this.ai.y - prevAiY) > 0.3;
                 if (this.ai.isMoving) this.ai.walkPhase += 0.18;
+
+                // Footstep dust for AI
+                if (this.ai.isMoving && !this.ai.stunned) {
+                    const prevPhase = this.ai.walkPhase - 0.18;
+                    if (Math.floor(this.ai.walkPhase / Math.PI) > Math.floor(prevPhase / Math.PI)) {
+                        const fx = this.ai.x + this.ai.width * (0.25 + Math.random() * 0.5);
+                        const fy = this.ai.y + this.ai.height - 4;
+                        for (let i = 0; i < 2; i++) {
+                            this.particles.push({ x: fx + (Math.random() - 0.5) * 12, y: fy, vx: (Math.random() - 0.5) * 1.2, vy: -0.5 - Math.random() * 0.8, life: 0, maxLife: 14 + Math.random() * 8, size: 1.5 + Math.random() * 2, color: '#c8a96e' });
+                        }
+                    }
+                }
 
                 // Attack interval shrinks from 60-120 frames (easy) down to 20-30 frames (max)
                 const minInterval = Math.round(60 - diff * 40);
